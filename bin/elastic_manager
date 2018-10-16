@@ -1,0 +1,9 @@
+#! /usr/bin/env ruby
+
+require 'elastic_manager'
+
+STDOUT.sync = true
+
+elastic_manager = ElasticManager.new(ARGV)
+
+elastic_manager.work
