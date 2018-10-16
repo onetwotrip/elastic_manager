@@ -15,4 +15,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'http',     '~> 3.3'
   s.add_dependency 'colorize', '~> 0.8'
   s.add_dependency 'dotenv',   '~> 2.4'
+  s.add_dependency 'rake',     '~> 12.3'
 end
