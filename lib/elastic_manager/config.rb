@@ -44,6 +44,34 @@ module Config
     end
   end
 
+  def option_parser(result)
+    OptionParser.new do |parser|
+      MAIN_PARAMS.each do |param|
+        parser.on("--#{param.downcase}=#{param}") do |pr|
+          result[param.downcase] = pr
+        end
+      end
+
+      ADDITIONAL_PARAMS.each do |param|
+        parser.on("--#{param.downcase}=#{param}") do |pr|
+          params = param.split('_')
+
+          if params.length == 2
+            result[params[0].downcase][params[1].downcase] = pr
+          elsif params.length == 1
+            if params[0].downcase == 'settings'
+              result[params[0].downcase] = parse_settings(pr)
+            else
+              result[params[0].downcase] = pr
+            end
+          end
+        end
+      end
+    end.parse!
+
+    result
+  end
+
   def load_from_env
     log.debug "will load config from ENV variables"
 
@@ -84,40 +112,9 @@ module Config
     log.debug "will load config from passed arguments"
     result = make_default_config
 
-    optparse = OptionParser.new do |parser|
-      MAIN_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          result[param.downcase] = pr
-        end
-      end
+    result = option_parser(result)
 
-      ADDITIONAL_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          params = param.split('_')
-
-          if params.length == 2
-            result[params[0].downcase][params[1].downcase] = pr
-          elsif params.length == 1
-            if params[0].downcase == 'settings'
-              result[params[0].downcase] = parse_settings(pr)
-            else
-              result[params[0].downcase] = pr
-            end
-          end
-        end
-      end
-    end
-
-    begin
-      optparse.parse!
-
-      mandatory = MAIN_PARAMS.map { |p| p.downcase }
-      if mandatory.map { |key| result[key].empty? }.any?{ |a| a == true }
-        raise OptionParser::MissingArgument.new(mandatory.join(', '))
-      end
-    rescue OptionParser::InvalidOption, OptionParser::MissingArgument
-      # puts $!.to_s
-      # puts optparse
+    if MAIN_PARAMS.map { |p| p.downcase }.map { |key| result[key].empty? }.any?{ |a| a == true }
       log.fatal BANNER_ARGV
       exit 1
     end
