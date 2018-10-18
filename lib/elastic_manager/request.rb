@@ -66,28 +66,15 @@ module Request
     end
 
     def all_indices(from=nil, to=nil, state=nil, type=nil)
-      req_path   =  '/_cluster/state/metadata/'
-      req_params =  '?filter_path=metadata.indices.*.state,'
-      req_params << 'metadata.indices.*.settings.index.routing.allocation.require.box_type'
+      indices = get_all_indices
 
-      response = request(:get, req_path + req_params)
-      if response.code == 200
-        indices = json_parse(response)['metadata']['indices']
-      else
-        log.fatal "can't work with all_indices response was: #{response}"
-        exit 1
-      end
+      # TODO (anton.ryabov): next line just for debug purpose, need better handling
+      indices.each { |k, v| log.debug "#{k} - #{v.to_json}" unless v['settings'] }
 
       indices.select!{ |_, v| v['state'] == state } if state
+      indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
 
-      if type
-        # TODO (anton.ryabov): next line just for debug purpose, need better handling
-        indices.each { |k, v| log.warn "#{k} - #{v.to_json}" unless v['settings'] }
-        indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type }
-      end
-
-      res = []
-      indices.each_key do |index|
+      indices.map do |index, _|
         begin
           index_date = Date.parse(index.gsub('-', ''))
         rescue ArgumentError => e
@@ -95,10 +82,23 @@ module Request
           next
         end
 
-        res << URI.escape(index) if (from..to).cover? index_date
+        URI.escape(index) if (from..to).cover? index_date
       end
+    end
 
-      res
+    def get_all_indices
+      req_path   =  '/_cluster/state/metadata/'
+      req_params =  '?filter_path=metadata.indices.*.state,'
+      req_params << 'metadata.indices.*.settings.index.routing.allocation.require.box_type'
+
+      response = request(:get, req_path + req_params)
+
+      if response.code == 200
+        return json_parse(response)['metadata']['indices']
+      else
+        log.fatal "can't work with all_indices response was: #{response.code} - #{response}"
+        exit 1
+      end
     end
 
     def find_snapshot_repo
