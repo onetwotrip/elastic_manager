@@ -1,13 +1,14 @@
+require 'json'
+require 'yajl'
 require 'elastic_manager/logger'
 
 module Config
-
   include Logging
 
   MAIN_PARAMS = %w[TASK INDICES FROM TO]
   MAIN_PARAMS.freeze
 
-  ADDITIONAL_PARAMS = %w[ES_URL TIMEOUT_WRITE TIMEOUT_CONNECT TIMEOUT_READ RETRY SLEEP FORCE SKIP_OPEN]
+  ADDITIONAL_PARAMS = %w[ES_URL TIMEOUT_WRITE TIMEOUT_CONNECT TIMEOUT_READ RETRY SLEEP FORCE SETTINGS]
   ADDITIONAL_PARAMS.freeze
 
   BANNER_ENV = "Missing argument: #{MAIN_PARAMS.join(', ')}. "
@@ -28,9 +29,47 @@ module Config
     default['timeout']['write']   = '2'
     default['timeout']['connect'] = '3'
     default['timeout']['read']    = '60'
+    default['settings']           = {}
 
     log.debug "default config: #{default.inspect}"
     default
+  end
+
+  def parse_settings(json)
+    begin
+      JSON.parse(json)
+    rescue JSON::ParserError => e
+      log.fatal "json parse err: '''#{e.message}'''\n\t#{e.backtrace.join("\n\t")}"
+      exit 1
+    end
+  end
+
+  def option_parser(result)
+    OptionParser.new do |parser|
+      MAIN_PARAMS.each do |param|
+        parser.on("--#{param.downcase}=#{param}") do |pr|
+          result[param.downcase] = pr
+        end
+      end
+
+      ADDITIONAL_PARAMS.each do |param|
+        parser.on("--#{param.downcase}=#{param}") do |pr|
+          params = param.split('_')
+
+          if params.length == 2
+            result[params[0].downcase][params[1].downcase] = pr
+          elsif params.length == 1
+            if params[0].downcase == 'settings'
+              result[params[0].downcase] = parse_settings(pr)
+            else
+              result[params[0].downcase] = pr
+            end
+          end
+        end
+      end
+    end.parse!
+
+    result
   end
 
   def load_from_env
@@ -54,7 +93,11 @@ module Config
         if vars.length == 2
           result[vars[0].downcase][vars[1].downcase] = ENV[var]
         elsif vars.length == 1
-          result[vars[0].downcase] = ENV[var]
+          if vars[0].downcase == 'settings'
+            result[vars[0].downcase] = parse_settings(ENV[var])
+          else
+            result[vars[0].downcase] = ENV[var]
+          end
         end
       end
     end
@@ -69,36 +112,9 @@ module Config
     log.debug "will load config from passed arguments"
     result = make_default_config
 
-    optparse = OptionParser.new do |parser|
-      MAIN_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          result[param.downcase] = pr
-        end
-      end
+    result = option_parser(result)
 
-      ADDITIONAL_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          params = param.split('_')
-
-          if vars.length == 2
-            result[params[0].downcase][params[1].downcase] = pr
-          elsif vars.length == 1
-            result[params[0].downcase] = pr
-          end
-        end
-      end
-    end
-
-    begin
-      optparse.parse!
-
-      mandatory = MAIN_PARAMS.map { |p| p.downcase }
-      if mandatory.map { |key| result[key].empty? }.any?{ |a| a == true }
-        raise OptionParser::MissingArgument.new(mandatory.join(', '))
-      end
-    rescue OptionParser::InvalidOption, OptionParser::MissingArgument
-      # puts $!.to_s
-      # puts optparse
+    if MAIN_PARAMS.map { |p| p.downcase }.map { |key| result[key].empty? }.any?{ |a| a == true }
       log.fatal BANNER_ARGV
       exit 1
     end
