@@ -17,7 +17,7 @@ class ElasticManager
     if argv.size == 0
       @config = load_from_env
     else
-      @config = load_from_argv(argv)
+      @config = load_from_argv
     end
 
     @elastic = Request::Elastic.new(@config)

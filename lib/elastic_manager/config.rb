@@ -72,11 +72,7 @@ module Config
     result
   end
 
-  def load_from_env
-    log.debug "will load config from ENV variables"
-
-    result = make_default_config
-
+  def env_parser(result)
     MAIN_PARAMS.each do |var|
       if ENV[var] == '' || ENV[var].nil?
         log.fatal BANNER_ENV
@@ -102,16 +98,24 @@ module Config
       end
     end
 
+    result
+  end
+
+  def load_from_env
+    log.debug "will load config from ENV variables"
+
+    result = make_default_config
+    result = env_parser(result)
+
     log.debug "env config: #{result.inspect}"
     result
   end
 
-  def load_from_argv(argv)
+  def load_from_argv
     require 'optparse'
 
     log.debug "will load config from passed arguments"
     result = make_default_config
-
     result = option_parser(result)
 
     if MAIN_PARAMS.map { |p| p.downcase }.map { |key| result[key].empty? }.any?{ |a| a == true }
