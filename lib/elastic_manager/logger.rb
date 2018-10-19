@@ -2,6 +2,16 @@ require 'logger'
 require 'colorize'
 
 module Logging
+
+  SEVERITY_COLORS = {
+    'DEBUG'   => 'cyan',
+    'INFO'    => 'green',
+    'WARN'    => 'yellow',
+    'ERROR'   => 'light_red',
+    'FATAL'   => 'red',
+    'UNKNOWN' => 'magenta'
+  }
+
   def log
     @log ||= Logging.logger_for(self.class.name)
   end
@@ -15,35 +25,24 @@ module Logging
       @loggers[classname] ||= configure_logger_for(classname)
     end
 
+    def log_level
+      # :debug < :info < :warn < :error < :fatal < :unknown
+      if ENV['LOG_LEVEL'] == '' || ENV['LOG_LEVEL'].nil?
+        'INFO'
+      else
+        ENV['LOG_LEVEL']
+      end
+    end
+
     def configure_logger_for(classname)
       logger          = Logger.new(STDOUT)
       logger.progname = classname
-
-      # :debug < :info < :warn < :error < :fatal < :unknown
-      if ENV['LOG_LEVEL'] == '' || ENV['LOG_LEVEL'].nil?
-        logger.level = 'INFO'
-      else
-        logger.level = ENV['LOG_LEVEL']
-      end
+      logger.level    = log_level
 
       logger.formatter = proc do |severity, datetime, progname, msg|
         datetime = datetime.strftime("%Y-%m-%d | %I:%M:%S.%L")
-        message = "#{datetime} | #{progname} | #{severity} | #{msg}\n"
-
-        case severity
-        when 'DEBUG'
-          message.cyan
-        when 'INFO'
-          message.green
-        when 'WARN'
-          message.yellow
-        when 'ERROR'
-          message.light_red
-        when 'FATAL'
-          message.red
-        when 'UNKNOWN'
-          message.magenta
-        end
+        message  = "#{datetime} | #{progname} | #{severity} | #{msg}\n"
+        message.send(SEVERITY_COLORS[severity])
       end
 
       logger
