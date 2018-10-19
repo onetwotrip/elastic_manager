@@ -72,30 +72,32 @@ module Config
     result
   end
 
+  def get_env_vars(vars, result)
+    if vars.length == 2
+      result[vars[0].downcase][vars[1].downcase] = ENV[var]
+    elsif vars.length == 1
+      if vars[0].downcase == 'settings'
+        result[vars[0].downcase] = parse_settings(ENV[var])
+      else
+        result[vars[0].downcase] = ENV[var]
+      end
+    end
+
+    result
+  end
+
   def env_parser(result)
     MAIN_PARAMS.each do |var|
       if ENV[var] == '' || ENV[var].nil?
         log.fatal BANNER_ENV
         exit 1
-      else
-        result[var.downcase] = ENV[var]
       end
+
+      result[var.downcase] = ENV[var]
     end
 
     ADDITIONAL_PARAMS.each do |var|
-      unless ENV[var] == '' || ENV[var].nil?
-        vars = var.split('_')
-
-        if vars.length == 2
-          result[vars[0].downcase][vars[1].downcase] = ENV[var]
-        elsif vars.length == 1
-          if vars[0].downcase == 'settings'
-            result[vars[0].downcase] = parse_settings(ENV[var])
-          else
-            result[vars[0].downcase] = ENV[var]
-          end
-        end
-      end
+      result = get_env_vars(var.split('_'), result) unless ENV[var] == '' || ENV[var].nil?
     end
 
     result
