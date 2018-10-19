@@ -87,19 +87,11 @@ class ElasticManager
     return indices, date_from, date_to
   end
 
-  def open_index(index)
-    if @elastic.open_index(index)
-      log.info "#{index} index open success"
+  def action_with_log(action, index)
+    if @elastic.send(action, index)
+      log.info "#{index} #{action} succes"
     else
-      log.fatal "#{index} index open failed"
-    end
-  end
-
-  def restore_index(index)
-    if @elastic.restore_snapshot(index)
-      log.info "#{index} restored"
-    else
-      log.error "#{index} troubles with restore"
+      log.error "#{index} #{action} fail"
     end
   end
 
@@ -113,12 +105,12 @@ class ElasticManager
       if index_exist?(response)
         next if already_open?(response)
 
-        open_index(index)
+        action_with_log('open_index', index)
       else
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        restore_index(index)
+        action_with_log('restore_snapshot', index)
       end
     end
   end
