@@ -72,7 +72,9 @@ module Config
     result
   end
 
-  def get_env_vars(vars, result)
+  def get_env_vars(var, result)
+    vars = var.split('_')
+
     if vars.length == 2
       result[vars[0].downcase][vars[1].downcase] = ENV[var]
     elsif vars.length == 1
@@ -97,7 +99,7 @@ module Config
     end
 
     ADDITIONAL_PARAMS.each do |var|
-      result = get_env_vars(var.split('_'), result) unless ENV[var] == '' || ENV[var].nil?
+      result = get_env_vars(var, result) unless ENV[var] == '' || ENV[var].nil?
     end
 
     result
