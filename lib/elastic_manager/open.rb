@@ -18,14 +18,4 @@ module Open
       end
     end
   end
-
-  def open
-    indices, date_from, date_to = prepare_vars
-    prechecks(indices, date_from, date_to)
-    indices = all_precheck(indices, date_from, date_to, 'close')
-
-    date_from.upto(date_to) do |date|
-      do_open(indices, date.to_s.tr!('-', '.'))
-    end
-  end
 end

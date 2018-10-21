@@ -4,6 +4,11 @@ require 'yajl'
 module Utils
   include Logging
 
+  REVERT_STATE = {
+    'open'  => 'close',
+    'close' => 'open'
+  }
+
   def true?(obj)
     obj.to_s.downcase == 'true'
   end
@@ -15,7 +20,7 @@ module Utils
     exit 1
   end
 
-  def prechecks(indices, date_from, date_to)
+  def prechecks(date_from, date_to)
     if date_from > date_to
       log.fatal "wrong dates: date to is behind date from. from: #{date_from}, to: #{date_to}"
       exit 1
@@ -38,6 +43,7 @@ module Utils
   end
 
   def all_precheck(indices, date_from, date_to, state)
+    state =
     if indices.length == 1 && indices.first == '_all'
       indices = @elastic.all_indices(date_from, date_to, state)
     end
@@ -86,5 +92,15 @@ module Utils
     end
 
     false
+  end
+
+  def action(task)
+    indices, date_from, date_to = prepare_vars
+    prechecks(date_from, date_to)
+    indices = all_precheck(indices, date_from, date_to, REVERT_STATE[task])
+
+    date_from.upto(date_to) do |date|
+      self.send("do_#{task}", indices, date.to_s.tr!('-', '.'))
+    end
   end
 end

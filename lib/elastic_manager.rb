@@ -26,10 +26,6 @@ class ElasticManager
   end
 
   def run
-    if @config['task'].downcase == 'open'
-      open
-    elsif @config['task'].downcase == 'close'
-      close
-    end
+    action(@config['task'].downcase)
   end
 end

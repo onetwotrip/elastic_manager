@@ -75,7 +75,6 @@ module Request
       indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
 
       indices.select! do |index, _|
-        log.debug index
         begin
           index_date = Date.parse(index.gsub('-', ''))
         rescue ArgumentError => e
