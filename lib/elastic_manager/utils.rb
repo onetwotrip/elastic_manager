@@ -43,7 +43,6 @@ module Utils
   end
 
   def all_precheck(indices, date_from, date_to, state)
-    state =
     if indices.length == 1 && indices.first == '_all'
       indices = @elastic.all_indices(date_from, date_to, state)
     end
