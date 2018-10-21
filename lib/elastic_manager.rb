@@ -5,6 +5,7 @@ require 'elastic_manager/logger'
 require 'elastic_manager/request'
 require 'elastic_manager/utils'
 require 'elastic_manager/open'
+require 'elastic_manager/close'
 
 class ElasticManager
   include Config
@@ -12,6 +13,7 @@ class ElasticManager
   include Request
   include Utils
   include Open
+  include Close
 
   def initialize(argv)
     if argv.size == 0
@@ -26,6 +28,8 @@ class ElasticManager
   def run
     if @config['task'].downcase == 'open'
       open
+    elsif @config['task'].downcase == 'close'
+      close
     end
   end
 end

@@ -74,16 +74,19 @@ module Request
       indices.select!{ |_, v| v['state'] == state } if state
       indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
 
-      indices.map do |index, _|
+      indices.select! do |index, _|
+        log.debug index
         begin
           index_date = Date.parse(index.gsub('-', ''))
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
         end
-
-        URI.escape(index) if (from..to).cover? index_date
+        (from..to).cover? index_date
       end
+
+      indices = indices.keys.map { |i| i.split('-')[0..-2].join('-') }
+      return indices
     end
 
     def get_all_indices
@@ -172,13 +175,13 @@ module Request
       true
     end
 
-    def open_index(index)
-      response = request(:post, "/#{index}/_open?master_timeout=1m")
+    def index(action, index)
+      response = request(:post, "/#{URI.escape(index)}/_#{action}?master_timeout=1m")
 
       if response.code == 200
         response = json_parse(response)
       else
-        log.fatal "wrong response code for #{index} open"
+        log.fatal "wrong response code for #{index} #{action}"
         exit 1
       end
 

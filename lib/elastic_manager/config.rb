@@ -35,15 +35,6 @@ module Config
     default
   end
 
-  def parse_settings(json)
-    begin
-      JSON.parse(json)
-    rescue JSON::ParserError => e
-      log.fatal "json parse err: '''#{e.message}'''\n\t#{e.backtrace.join("\n\t")}"
-      exit 1
-    end
-  end
-
   def option_parser(result)
     OptionParser.new do |parser|
       MAIN_PARAMS.each do |param|
@@ -60,7 +51,7 @@ module Config
             result[params[0].downcase][params[1].downcase] = pr
           elsif params.length == 1
             if params[0].downcase == 'settings'
-              result[params[0].downcase] = parse_settings(pr)
+              result[params[0].downcase] = json_parse(pr)
             else
               result[params[0].downcase] = pr
             end
@@ -79,7 +70,7 @@ module Config
       result[vars[0].downcase][vars[1].downcase] = ENV[var]
     elsif vars.length == 1
       if vars[0].downcase == 'settings'
-        result[vars[0].downcase] = parse_settings(ENV[var])
+        result[vars[0].downcase] = json_parse(ENV[var])
       else
         result[vars[0].downcase] = ENV[var]
       end
