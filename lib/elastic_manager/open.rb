@@ -50,8 +50,9 @@ module Open
   end
 
   def already_open?(response)
-    if response.body.to_s =~ /open/
-      log.warn "#{index} index already opened"
+    index = json_parse(response).first
+    if index['status'] == 'open'
+      log.warn "#{index['index']} index status already open"
       return true
     end
 
