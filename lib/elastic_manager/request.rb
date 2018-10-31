@@ -65,16 +65,52 @@ module Request
       false
     end
 
-    def all_indices(from=nil, to=nil, state=nil, type=nil)
+    def all_indices_in_snapshots(from=nil, to=nil, daysago=nil)
+      all_snapshots = get_all_snapshots
+      all_snapshots.select!{ |snap| snap['status'] == 'SUCCESS' }
+
+      result = []
+      all_snapshots.each do |snap|
+        begin
+          snap_date = Date.parse(snap['id'].gsub('-', ''))
+        rescue ArgumentError => e
+          log.error "#{e.message} for #{index}"
+          next
+        end
+
+        if from.nil?
+          result << URI.escape(snap['id'].gsub('snapshot_', '')) if snap_date < (Date.today - daysago)
+        else
+          result << URI.escape(snap['id'].gsub('snapshot_', '')) if (from..to).cover? snap_date
+        end
+      end
+
+      result
+    end
+
+    def get_all_snapshots
+      snapshot_repo = find_snapshot_repo
+      response = request(:get, "/_cat/snapshots/#{snapshot_repo}")
+
+      if response.code == 200
+        json_parse(response)
+      else
+        log.fatal "can't work with all_snapshots response was: #{response.code} - #{response}"
+        exit 1
+      end
+    end
+
+    def all_indices(from=nil, to=nil, daysago=nil, state=nil, type=nil)
       indices = get_all_indices
 
-      # TODO (anton.ryabov): next line just for debug purpose, need better handling
+      # TODO: (anton.ryabov) next line just for debug purpose, need better handling
       indices.each { |k, v| log.debug "#{k} - #{v.to_json}" unless v['settings'] }
 
       indices.select!{ |_, v| v['state'] == state } if state
       indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
 
-      indices.map do |index, _|
+      result = []
+      indices.each do |index, _|
         begin
           index_date = Date.parse(index.gsub('-', ''))
         rescue ArgumentError => e
@@ -82,8 +118,14 @@ module Request
           next
         end
 
-        URI.escape(index) if (from..to).cover? index_date
+        if from.nil?
+          result << URI.escape(index) if index_date < (Date.today - daysago)
+        else
+          result << URI.escape(index) if (from..to).cover? index_date
+        end
       end
+
+      result
     end
 
     def get_all_indices
@@ -94,7 +136,7 @@ module Request
       response = request(:get, req_path + req_params)
 
       if response.code == 200
-        return json_parse(response)['metadata']['indices']
+        json_parse(response)['metadata']['indices']
       else
         log.fatal "can't work with all_indices response was: #{response.code} - #{response}"
         exit 1
@@ -162,7 +204,7 @@ module Request
         response = request(:get, "/#{index}/_recovery")
 
         if response.code == 200
-          # TODO anton.ryabov: add logging of percent and time ?
+          # TODO: (anton.ryabov) add logging of percent and time ?
           restore_ok = json_parse(response)[index]['shards'].map { |s| s['stage'] == 'DONE' }.all?{ |a| a == true }
         else
           log.error "can't check recovery: #{response.code} - #{response}"

@@ -4,6 +4,6 @@ require 'elastic_manager'
 
 STDOUT.sync = true
 
-elastic_manager = ElasticManager.new(ARGV)
+elastic_manager = ElasticManager.new()
 
 elastic_manager.run

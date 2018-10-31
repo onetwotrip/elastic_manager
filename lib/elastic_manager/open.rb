@@ -3,10 +3,12 @@ require 'elastic_manager/logger'
 module Open
   include Logging
 
-  def open_prechecks(indices, date_from, date_to)
-    unless date_from <= date_to
-      log.fatal "wrong dates: date to is behind date from. from: #{date_from}, to: #{date_to}"
-      exit 1
+  def open_prechecks(date_from, date_to)
+    unless date_from.nil?
+      if date_from > date_to
+        log.fatal "wrong dates: date to is behind date from. from: #{date_from}, to: #{date_to}"
+        exit 1
+      end
     end
 
     unless true?(@config['force'])
@@ -15,15 +17,11 @@ module Open
         exit 1
       end
     end
-
-    if indices.length == 1 && indices.first == '_all'
-      indices = @elastic.all_indices(date_from, date_to, 'close')
-    end
-
-    indices
   end
 
-  def skip_open?(index_name)
+  def skip_open?(index)
+    index_name = index.split('-')[0..-2].join('-')
+
     if @config['settings'][index_name]
       if @config['settings'][index_name]['skip_open']
         log.debug @config['settings'][index_name]['skip_open'].inspect
@@ -40,9 +38,9 @@ module Open
 
   def index_exist?(response)
     if response.code == 200
-      return true
+      true
     elsif response.code == 404
-      return false
+      false
     else
       log.fatal "wtf in index_exist? response was: #{response.code} - #{response}"
       exit 1
@@ -61,11 +59,14 @@ module Open
 
   def open_prepare_vars
     indices   = @config['indices'].split(',')
-    date_from = Date.parse(@config['from'])
-    date_to   = Date.parse(@config['to'])
-    indices   = open_prechecks(indices, date_from, date_to)
+    daysago   = @config['daysago'].to_i
+    date_from = @config['from']
+    date_to   = @config['to']
 
-    return indices, date_from, date_to
+    date_from = date_from.empty? ? nil : Date.parse(date_from)
+    date_to   = date_to.empty? ? nil : Date.parse(date_to)
+
+    return indices, date_from, date_to, daysago
   end
 
   def action_with_log(action, index)
@@ -76,11 +77,38 @@ module Open
     end
   end
 
-  def do_open(indices, date)
-    indices.each do |index_name|
-      next if skip_open?(index_name)
+  def populate_indices(indices, date_from, date_to, daysago)
+    result = []
 
-      index    = "#{index_name}-#{date}"
+    if indices.length == 1 && indices.first == '_all'
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close')
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago)
+      return result
+    end
+
+    if date_from.nil?
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close')
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago)
+      return result.select { |r| r.start_with?(*indices) }
+    else
+      date_from.upto(date_to) do |date|
+        indices.each do |index|
+          result << "#{index}-#{date.to_s.tr!('-', '.')}"
+        end
+      end
+    end
+
+    return result unless result.empty?
+
+    log.fatal 'no indices for work'
+    exit 1
+  end
+
+  def do_open(indices)
+    indices.each do |index|
+      next if skip_open?(index)
+
+      # index    = "#{index_name}-#{date}"
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)
@@ -97,10 +125,12 @@ module Open
   end
 
   def open
-    indices, date_from, date_to = open_prepare_vars
+    indices, date_from, date_to, daysago = open_prepare_vars
+    open_prechecks(date_from, date_to)
+    indices = populate_indices(indices, date_from, date_to, daysago)
 
-    date_from.upto(date_to) do |date|
-      do_open(indices, date.to_s.tr!('-', '.'))
-    end
+    log.debug indices.inspect
+
+    do_open(indices)
   end
 end

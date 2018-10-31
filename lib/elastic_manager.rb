@@ -13,12 +13,8 @@ class ElasticManager
   include Utils
   include Open
 
-  def initialize(argv)
-    if argv.size == 0
-      @config = load_from_env
-    else
-      @config = load_from_argv
-    end
+  def initialize
+    @config = load_from_env
 
     @elastic = Request::Elastic.new(@config)
   end
