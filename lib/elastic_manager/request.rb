@@ -1,18 +1,23 @@
+# frozen_string_literal: true
+
 require 'http'
 require 'yajl'
 require 'elastic_manager/logger'
 require 'elastic_manager/utils'
+require 'cgi'
 
+# All kind of requests
 module Request
   class Error < StandardError; end
   class Throttling < Error; end
   class ServerError < Error; end
 
+  # Elasticsearch requests wrapper
   class Elastic
     include Logging
     include Utils
 
-    RETRY_ERRORS = [StandardError, RuntimeError, Throttling]
+    RETRY_ERRORS = [StandardError, RuntimeError, Throttling].freeze
 
     def initialize(config)
       @client = HTTP.timeout(
@@ -79,9 +84,9 @@ module Request
         end
 
         if from.nil?
-          result << URI.escape(snap['id'].gsub('snapshot_', '')) if snap_date < (Date.today - daysago)
+          result << CGI.escape(snap['id'].gsub('snapshot_', '')) if snap_date < (Date.today - daysago)
         else
-          result << URI.escape(snap['id'].gsub('snapshot_', '')) if (from..to).cover? snap_date
+          result << CGI.escape(snap['id'].gsub('snapshot_', '')) if (from..to).cover? snap_date
         end
       end
 
@@ -118,10 +123,10 @@ module Request
           next
         end
 
-        if from.nil?
-          result << URI.escape(index) if index_date < (Date.today - daysago)
-        else
-          result << URI.escape(index) if (from..to).cover? index_date
+        if from.nil? && index_date < (Date.today - daysago)
+          result << CGI.escape(index)
+        elsif (from..to).cover? index_date
+          result << CGI.escape(index)
         end
       end
 

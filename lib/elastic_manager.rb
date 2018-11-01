@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'dotenv/load'
 require 'date'
 require 'elastic_manager/config'
@@ -6,6 +8,7 @@ require 'elastic_manager/request'
 require 'elastic_manager/utils'
 require 'elastic_manager/open'
 
+# Main
 class ElasticManager
   include Config
   include Logging
@@ -20,7 +23,7 @@ class ElasticManager
   end
 
   def run
-    if @config['task'].downcase == 'open'
+    if @config['task'].casecmp('open').zero?
       open
     end
   end

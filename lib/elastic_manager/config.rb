@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'yajl'
 require 'elastic_manager/logger'
 
+# Read, validate and merge with default config
 module Config
   include Logging
 
@@ -62,18 +65,18 @@ module Config
     config
   end
 
-  def fail_and_exit
-    log.fatal 'not enough env variables. TASK, INDICES, (FROM/TO or DAYSAGO)'
-    exit 1
-  end
-
   # def present?
   #   !blank?
   # end
 
   def exit_if_invalid(config)
-    fail_and_exit if config['task'].empty? || config['indices'].empty?
-    fail_and_exit unless (config['from'].empty? && config['to'].empty?) || config['daysago'].empty?
+    if config['task'].empty? || config['indices'].empty?
+      fail_and_exit('not enough env variables. TASK, INDICES')
+    end
+
+    unless (config['from'].empty? && config['to'].empty?) || config['daysago'].empty?
+      fail_and_exit('not enough env variables. FROM/TO or DAYSAGO')
+    end
   end
 
   def load_from_env

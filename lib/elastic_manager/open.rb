@@ -1,5 +1,8 @@
+# frozen_string_literal: true
+
 require 'elastic_manager/logger'
 
+# Index opening operations
 module Open
   include Logging
 
@@ -11,11 +14,8 @@ module Open
       end
     end
 
-    unless true?(@config['force'])
-      unless @elastic.green?
-        log.fatal "elasticsearch on #{@config['es']['url']} is not green"
-        exit 1
-      end
+    unless true?(@config['force']) && @elastic.green?
+      fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
     end
   end
 
@@ -104,7 +104,6 @@ module Open
     indices.each do |index|
       next if skip_open?(index)
 
-      # index    = "#{index_name}-#{date}"
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)

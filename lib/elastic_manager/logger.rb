@@ -1,16 +1,19 @@
+# frozen_string_literal: true
+
 require 'logger'
 require 'colorize'
 
+# Universal global logging
 module Logging
 
   SEVERITY_COLORS = {
-    'DEBUG'   => 'cyan',
-    'INFO'    => 'green',
-    'WARN'    => 'yellow',
-    'ERROR'   => 'light_red',
-    'FATAL'   => 'red',
-    'UNKNOWN' => 'magenta'
-  }
+    DEBUG:   'cyan',
+    INFO:    'green',
+    WARN:    'yellow',
+    ERROR:   'light_red',
+    FATAL:   'red',
+    UNKNOWN: 'magenta'
+  }.freeze
 
   def log
     @log ||= Logging.logger_for(self.class.name)
