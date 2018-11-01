@@ -67,12 +67,13 @@ module Request
     def green?
       response = request(:get, '/_cluster/health')
       return json_parse(response)['status'] == 'green' if response.code == 200
+
       false
     end
 
     def all_indices_in_snapshots(from=nil, to=nil, daysago=nil)
       all_snapshots = get_all_snapshots
-      all_snapshots.select!{ |snap| snap['status'] == 'SUCCESS' }
+      all_snapshots.select! { |snap| snap['status'] == 'SUCCESS' }
 
       result = []
       all_snapshots.each do |snap|
@@ -83,10 +84,10 @@ module Request
           next
         end
 
-        if from.nil?
-          result << CGI.escape(snap['id'].gsub('snapshot_', '')) if snap_date < (Date.today - daysago)
-        else
-          result << CGI.escape(snap['id'].gsub('snapshot_', '')) if (from..to).cover? snap_date
+        if from.nil? && snap_date < (Date.today - daysago)
+          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
+        elsif (from..to).cover? snap_date
+          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
         end
       end
 
@@ -111,8 +112,8 @@ module Request
       # TODO: (anton.ryabov) next line just for debug purpose, need better handling
       indices.each { |k, v| log.debug "#{k} - #{v.to_json}" unless v['settings'] }
 
-      indices.select!{ |_, v| v['state'] == state } if state
-      indices.select!{ |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
+      indices.select! { |_, v| v['state'] == state } if state
+      indices.select! { |_, v| v['settings']['index']['routing']['allocation']['require']['box_type'] == type } if type
 
       result = []
       indices.each do |index, _|
@@ -229,7 +230,7 @@ module Request
         exit 1
       end
 
-      return response['acknowledged'] == true
+      response['acknowledged'].true?
     end
   end
 end
