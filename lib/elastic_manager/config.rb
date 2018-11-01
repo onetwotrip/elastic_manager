@@ -5,8 +5,21 @@ require 'elastic_manager/logger'
 module Config
   include Logging
 
-  PARAMS = %w[TASK INDICES FROM TO DAYSAGO ES_URL TIMEOUT_WRITE TIMEOUT_CONNECT TIMEOUT_READ RETRY SLEEP FORCE SETTINGS]
-  PARAMS.freeze
+  PARAMS = %w[
+    TASK
+    INDICES
+    FROM
+    TO
+    DAYSAGO
+    ES_URL
+    TIMEOUT_WRITE
+    TIMEOUT_CONNECT
+    TIMEOUT_READ
+    RETRY
+    SLEEP
+    FORCE
+    SETTINGS
+  ].freeze
 
   def make_default_config
     default = Hash.new { |hash, key| hash[key] = Hash.new(&hash.default_proc) }
@@ -25,6 +38,14 @@ module Config
     default
   end
 
+  def check_settings(var)
+    if var.casecmp('settings').zero?
+      json_parse(ENV[var])
+    else
+      ENV[var]
+    end
+  end
+
   def env_parser(config)
     PARAMS.each do |var|
       next if ENV[var] == '' || ENV[var].nil?
@@ -34,11 +55,7 @@ module Config
       if vars.length == 2
         config[vars[0].downcase][vars[1].downcase] = ENV[var]
       elsif vars.length == 1
-        config[vars[0].downcase] = if vars[0].casecmp('settings').zero?
-                                     json_parse(ENV[var])
-                                   else
-                                     ENV[var]
-                                   end
+        config[vars[0].downcase] = check_settings(vars[0])
       end
     end
 

@@ -22,14 +22,10 @@ module Open
   def skip_open?(index)
     index_name = index.split('-')[0..-2].join('-')
 
-    if @config['settings'][index_name]
-      if @config['settings'][index_name]['skip_open']
-        log.debug @config['settings'][index_name]['skip_open'].inspect
-
-        if true?(@config['settings'][index_name]['skip_open'])
-          log.warn "#{index_name} index open skiped"
-          return true
-        end
+    if @config['settings'][index_name] && @config['settings'][index_name]['skip_open']
+      if true?(@config['settings'][index_name]['skip_open'])
+        log.warn "#{index_name} index open skiped"
+        return true
       end
     end
 
@@ -66,7 +62,7 @@ module Open
     date_from = date_from.empty? ? nil : Date.parse(date_from)
     date_to   = date_to.empty? ? nil : Date.parse(date_to)
 
-    return indices, date_from, date_to, daysago
+    [indices, date_from, date_to, daysago]
   end
 
   def action_with_log(action, index)
