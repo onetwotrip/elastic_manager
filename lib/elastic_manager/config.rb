@@ -65,13 +65,9 @@ module Config
     config
   end
 
-  # def present?
-  #   !blank?
-  # end
-
-  def exit_if_invalid(config)
+  def validate_config(config)
     if config['task'].empty? || config['indices'].empty?
-      fail_and_exit('not enough env variables. TASK, INDICES')
+      fail_and_exit('not enough env variables: TASK, INDICES')
     end
 
     if !config['from'].empty? && !config['to'].empty?
@@ -81,19 +77,19 @@ module Config
       rescue ArgumentError => e
         fail_and_exit("can't parse date #{key}: #{e.message}")
       end
-    elsif config['from'].empty? || config['to'].empty?
-      fail_and_exit('not enough env variables. FROM/TO or DAYSAGO')
+    elsif config['from'].empty? && !config['to'].empty?
+      fail_and_exit('not enough env variables: FROM')
+    elsif !config['from'].empty? && config['to'].empty?
+      fail_and_exit('not enough env variables: TO')
     elsif !config['daysago'].empty?
       log.debug 'will use daysago'
       config['from'], config['to'] = nil
       config['daysago'] = config['daysago'].to_i
     else
-      fail_and_exit('not enough env variables. FROM/TO or DAYSAGO')
+      fail_and_exit('not enough env variables: FROM-TO or DAYSAGO')
     end
 
-    # unless (!config['from'].empty? && !config['to'].empty?) || !config['daysago'].empty?
-    #   fail_and_exit('not enough env variables. FROM/TO or DAYSAGO')
-    # end
+    config
   end
 
   def load_from_env
@@ -101,7 +97,7 @@ module Config
 
     config = make_default_config
     config = env_parser(config)
-    exit_if_invalid(config)
+    config = validate_config(config)
 
     log.debug "env config: #{config.inspect}"
     config
