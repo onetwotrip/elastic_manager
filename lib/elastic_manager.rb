@@ -25,6 +25,8 @@ class ElasticManager
   def run
     if @config['task'].casecmp('open').zero?
       open
+    else
+      fail_and_exit('wrong task')
     end
   end
 end

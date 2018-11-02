@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 Gem::Specification.new do |s|
   s.name        = 'elastic_manager'
   s.executables = ['elastic_manager']
-  s.version     = '0.1.7'
+  s.version     = '0.1.8'
   s.date        = '2018-10-15'
   s.summary     = 'Because qurator sucks'
   s.description = 'Manager for logstash indices in elastic'

@@ -14,11 +14,10 @@ module Open
       end
     end
 
-    unless true?(@config['force'])
-      unless @elastic.green?
-        fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
-      end
-    end
+    return if true?(@config['force'])
+    return if @elastic.green?
+
+    fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
   end
 
   def skip_open?(index)
@@ -88,7 +87,8 @@ module Open
     else
       date_from.upto(date_to) do |date|
         indices.each do |index|
-          result << "#{index}-#{date.to_s.tr!('-', '.')}"
+          date_formatted = date.to_s.tr('-', '.')
+          result << "#{index}-#{date_formatted}"
         end
       end
     end

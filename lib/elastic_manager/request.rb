@@ -37,7 +37,6 @@ module Request
       tries ||= @retry
 
       yield
-
     rescue *RETRY_ERRORS => e
       log.warn "tries left #{tries + 1} '''#{e.message}''' sleeping #{@sleep} sec..."
       sleep @sleep
@@ -78,7 +77,7 @@ module Request
       result = []
       all_snapshots.each do |snap|
         begin
-          snap_date = Date.parse(snap['id'].gsub('-', ''))
+          snap_date = Date.parse(snap['id'].delete('-'))
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
@@ -118,7 +117,7 @@ module Request
       result = []
       indices.each do |index, _|
         begin
-          index_date = Date.parse(index.gsub('-', ''))
+          index_date = Date.parse(index.delete('-'))
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next

@@ -2,3 +2,5 @@ Metrics/LineLength:
   Max: 120
 Metrics/MethodLength:
   Max: 20
+Layout/SpaceAroundEqualsInParameterDefault:
+  EnforcedStyle: no_space

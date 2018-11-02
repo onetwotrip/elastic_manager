@@ -5,7 +5,6 @@ require 'colorize'
 
 # Universal global logging
 module Logging
-
   SEVERITY_COLORS = {
     'DEBUG'   => 'cyan',
     'INFO'    => 'green',
