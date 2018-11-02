@@ -1,9 +1,10 @@
 #! /usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'elastic_manager'
 
 STDOUT.sync = true
 
-elastic_manager = ElasticManager.new(ARGV)
+elastic_manager = ElasticManager.new()
 
-elastic_manager.work
+elastic_manager.run

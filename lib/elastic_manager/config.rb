@@ -1,22 +1,28 @@
+# frozen_string_literal: true
+
+require 'json'
+require 'yajl'
 require 'elastic_manager/logger'
 
+# Read, validate and merge with default config
 module Config
-
   include Logging
 
-  MAIN_PARAMS = %w[TASK INDICES FROM TO]
-  MAIN_PARAMS.freeze
-
-  ADDITIONAL_PARAMS = %w[ES_URL TIMEOUT_WRITE TIMEOUT_CONNECT TIMEOUT_READ RETRY SLEEP FORCE SKIP_OPEN]
-  ADDITIONAL_PARAMS.freeze
-
-  BANNER_ENV = "Missing argument: #{MAIN_PARAMS.join(', ')}. "
-  BANNER_ENV << "Usage: #{MAIN_PARAMS.map{ |p| "#{p}=#{p}"}.join(' ')} "
-  BANNER_ENV << "#{ADDITIONAL_PARAMS.map{ |p| "#{p}=#{p}"}.join(' ')} elastic_manager"
-
-  BANNER_ARGV = "Missing argument: #{MAIN_PARAMS.join(', ')}. "
-  BANNER_ARGV << "Usage: elastic_manager #{MAIN_PARAMS.map{ |p| "--#{p.downcase}=#{p.downcase}"}.join(' ')} "
-  BANNER_ARGV << "#{ADDITIONAL_PARAMS.map{ |p| "--#{p.downcase}=#{p.downcase}"}.join(' ')}"
+  PARAMS = %w[
+    TASK
+    INDICES
+    FROM
+    TO
+    DAYSAGO
+    ES_URL
+    TIMEOUT_WRITE
+    TIMEOUT_CONNECT
+    TIMEOUT_READ
+    RETRY
+    SLEEP
+    FORCE
+    SETTINGS
+  ].freeze
 
   def make_default_config
     default = Hash.new { |hash, key| hash[key] = Hash.new(&hash.default_proc) }
@@ -27,83 +33,60 @@ module Config
     default['force']              = 'false'
     default['timeout']['write']   = '2'
     default['timeout']['connect'] = '3'
-    default['timeout']['read']    = '60'
+    default['timeout']['read']    = '120'
+    default['daysago']            = ''
+    default['settings']           = {}
 
     log.debug "default config: #{default.inspect}"
     default
   end
 
-  def load_from_env
-    log.debug "will load config from ENV variables"
-
-    result = make_default_config
-
-    MAIN_PARAMS.each do |var|
-      if ENV[var] == '' || ENV[var].nil?
-        log.fatal BANNER_ENV
-        exit 1
-      else
-        result[var.downcase] = ENV[var]
-      end
+  def check_settings(var)
+    if var.casecmp('settings').zero?
+      json_parse(ENV[var])
+    else
+      ENV[var]
     end
-
-    ADDITIONAL_PARAMS.each do |var|
-      unless ENV[var] == '' || ENV[var].nil?
-        vars = var.split('_')
-
-        if vars.length == 2
-          result[vars[0].downcase][vars[1].downcase] = ENV[var]
-        elsif vars.length == 1
-          result[vars[0].downcase] = ENV[var]
-        end
-      end
-    end
-
-    log.debug "env config: #{result.inspect}"
-    result
   end
 
-  def load_from_argv(argv)
-    require 'optparse'
+  def env_parser(config)
+    PARAMS.each do |var|
+      next if ENV[var] == '' || ENV[var].nil?
 
-    log.debug "will load config from passed arguments"
-    result = make_default_config
+      vars = var.split('_')
 
-    optparse = OptionParser.new do |parser|
-      MAIN_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          result[param.downcase] = pr
-        end
-      end
-
-      ADDITIONAL_PARAMS.each do |param|
-        parser.on("--#{param.downcase}=#{param}") do |pr|
-          params = param.split('_')
-
-          if vars.length == 2
-            result[params[0].downcase][params[1].downcase] = pr
-          elsif vars.length == 1
-            result[params[0].downcase] = pr
-          end
-        end
+      if vars.length == 2
+        config[vars[0].downcase][vars[1].downcase] = ENV[var]
+      elsif vars.length == 1
+        config[vars[0].downcase] = check_settings(vars[0])
       end
     end
 
-    begin
-      optparse.parse!
+    config
+  end
 
-      mandatory = MAIN_PARAMS.map { |p| p.downcase }
-      if mandatory.map { |key| result[key].empty? }.any?{ |a| a == true }
-        raise OptionParser::MissingArgument.new(mandatory.join(', '))
-      end
-    rescue OptionParser::InvalidOption, OptionParser::MissingArgument
-      # puts $!.to_s
-      # puts optparse
-      log.fatal BANNER_ARGV
-      exit 1
+  # def present?
+  #   !blank?
+  # end
+
+  def exit_if_invalid(config)
+    if config['task'].empty? || config['indices'].empty?
+      fail_and_exit('not enough env variables. TASK, INDICES')
     end
 
-    log.debug "argv config: #{result.inspect}"
-    result
+    unless (config['from'].empty? && config['to'].empty?) || config['daysago'].empty?
+      fail_and_exit('not enough env variables. FROM/TO or DAYSAGO')
+    end
+  end
+
+  def load_from_env
+    log.debug 'will load config from ENV variables'
+
+    config = make_default_config
+    config = env_parser(config)
+    exit_if_invalid(config)
+
+    log.debug "env config: #{config.inspect}"
+    config
   end
 end
