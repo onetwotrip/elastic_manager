@@ -137,7 +137,7 @@ module Request
     def get_all_indices
       req_path   =  '/_cluster/state/metadata/'
       req_params =  '?filter_path=metadata.indices.*.state,'
-      req_params << 'metadata.indices.*.settings.index.routing.allocation.require.box_type'
+      req_params += 'metadata.indices.*.settings.index.routing.allocation.require.box_type'
 
       response = request(:get, req_path + req_params)
 
@@ -230,7 +230,7 @@ module Request
         exit 1
       end
 
-      response['acknowledged'].true?
+      response['acknowledged'].is_a?(TrueClass)
     end
   end
 end

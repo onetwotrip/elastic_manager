@@ -7,12 +7,12 @@ require 'colorize'
 module Logging
 
   SEVERITY_COLORS = {
-    DEBUG:   'cyan',
-    INFO:    'green',
-    WARN:    'yellow',
-    ERROR:   'light_red',
-    FATAL:   'red',
-    UNKNOWN: 'magenta'
+    'DEBUG'   => 'cyan',
+    'INFO'    => 'green',
+    'WARN'    => 'yellow',
+    'ERROR'   => 'light_red',
+    'FATAL'   => 'red',
+    'UNKNOWN' => 'magenta'
   }.freeze
 
   def log
@@ -43,7 +43,7 @@ module Logging
       logger.level    = log_level
 
       logger.formatter = proc do |severity, datetime, progname, msg|
-        datetime = datetime.strftime("%Y-%m-%d | %I:%M:%S.%L")
+        datetime = datetime.strftime('%Y-%m-%d | %I:%M:%S.%L')
         message  = "#{datetime} | #{progname} | #{severity} | #{msg}\n"
         message.send(SEVERITY_COLORS[severity])
       end

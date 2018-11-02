@@ -14,8 +14,10 @@ module Open
       end
     end
 
-    unless true?(@config['force']) && @elastic.green?
-      fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
+    unless true?(@config['force'])
+      unless @elastic.green?
+        fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
+      end
     end
   end
 
@@ -55,12 +57,9 @@ module Open
 
   def open_prepare_vars
     indices   = @config['indices'].split(',')
-    daysago   = @config['daysago'].to_i
+    daysago   = @config['daysago']
     date_from = @config['from']
     date_to   = @config['to']
-
-    date_from = date_from.empty? ? nil : Date.parse(date_from)
-    date_to   = date_to.empty? ? nil : Date.parse(date_to)
 
     [indices, date_from, date_to, daysago]
   end
