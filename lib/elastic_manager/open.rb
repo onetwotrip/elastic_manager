@@ -48,7 +48,7 @@ module Open
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        elastic_action_with_log('restore_snapshot', index)
+        elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
       end
     end
   end

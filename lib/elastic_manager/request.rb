@@ -193,7 +193,7 @@ module Request
       end
     end
 
-    def restore_snapshot(index)
+    def restore_snapshot(index, box_type)
       snapshot_name = "snapshot_#{index}"
       snapshot_repo = find_snapshot_repo
       snapshot      = find_snapshot(snapshot_repo, snapshot_name)
@@ -202,7 +202,7 @@ module Request
         index_settings: {
           'index.number_of_replicas'                  => 0,
           'index.refresh_interval'                    => -1,
-          'index.routing.allocation.require.box_type' => 'warm'
+          'index.routing.allocation.require.box_type' => box_type
         }
       }
       response = request(:post, "/_snapshot/#{snapshot_repo}/#{snapshot}/_restore", body)
@@ -241,25 +241,20 @@ module Request
         response = json_parse(response)
       else
         log.fatal "wrong response code for #{index} open"
-        exit 1
+        return false
       end
 
       response['acknowledged'].is_a?(TrueClass)
     end
 
     def close_index(index, tag)
-      box_type = request(:get, "/#{index}/_settings/index.routing.allocation.require.box_type")
-      if box_type.code == 200
-        box_type = json_parse(box_type)
-        log.debug "for #{index} box_type is #{box_type}"
-      else
-        log.fatal "can't check box_type for #{index}, response was: #{box_type.code} - #{box_type}"
-        return
-      end
+      box_type = index_box_type(index)
 
-      if box_type[index]['settings']['index']['routing']['allocation']['require']['box_type'] == tag
+      return false if box_type.nil?
+
+      if box_type == tag
         log.fatal "i will not close index #{index} in box_type #{tag}"
-        return
+        false
       else
         response = request(:post, "/#{index}/_close?master_timeout=1m")
 
@@ -267,11 +262,41 @@ module Request
           response = json_parse(response)
         else
           log.fatal "wrong response code for #{index} close"
-          exit 1
+          return false
         end
 
         response['acknowledged'].is_a?(TrueClass)
       end
+    end
+
+    def index_box_type(index)
+      response = request(:get, "/#{index}/_settings/index.routing.allocation.require.box_type")
+
+      if response.code == 200
+        response = json_parse(response)
+        box_type = response[index]['settings']['index']['routing']['allocation']['require']['box_type']
+        log.debug "for #{index} box_type is #{box_type}"
+        box_type
+      else
+        log.fatal "can't check box_type for #{index}, response was: #{response.code} - #{response}"
+        nil
+      end
+    end
+
+    def chill_index(index, box_type)
+      body = {
+        'index.routing.allocation.require.box_type' => box_type
+      }
+      response = request(:put, "/#{index}/_settings?master_timeout=1m", body)
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't chill #{index}, response was: #{response.code} - #{response}"
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
     end
   end
 end

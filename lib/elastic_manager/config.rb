@@ -36,8 +36,11 @@ module Config
     default['timeout']['read']    = '120'
     default['daysago']            = ''
     default['settings']           = {
-      'do_not_close_box_type' => 'hot',
-      'indices'               => {}
+      'box_types' => {
+        'ingest' => 'hot',
+        'store'  => 'warm'
+      },
+      'indices' => {}
     }
 
     log.debug "default config: #{default.inspect}"

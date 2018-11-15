@@ -3,17 +3,17 @@
 require 'elastic_manager/logger'
 
 # Index closing operations
-module Close
+module Chill
   include Logging
 
-  def close_populate_indices(indices, date_from, date_to, daysago)
+  def chill_populate_indices(indices, date_from, date_to, daysago)
     result = []
 
     if indices.length == 1 && indices.first == '_all'
-      result = @elastic.all_indices(date_from, date_to, daysago, 'open', nil, @config['settings']['indices'])
+      result = @elastic.all_indices(date_from, date_to, daysago, 'open', @config['settings']['box_types']['ingest'], @config['settings']['indices'])
     else
       if date_from.nil?
-        result = @elastic.all_indices(date_from, date_to, daysago, 'open', nil, @config['settings']['indices']).select { |r| r.start_with?(*indices) }
+        result = @elastic.all_indices(date_from, date_to, daysago, 'open', @config['settings']['box_types']['ingest'], @config['settings']['indices']).select { |r| r.start_with?(*indices) }
       else
         date_from.upto(date_to) do |date|
           indices.each do |index|
@@ -30,27 +30,27 @@ module Close
     exit 1
   end
 
-  def do_close(indices)
+  def do_chill(indices)
     indices.each do |index|
-      next if skip_index?(index, 'close')
+      next if skip_index?(index, 'chill')
 
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)
-        next if already?(response, 'close')
+        next if already?(response, @config['settings']['box_types']['store'])
 
-        elastic_action_with_log('close_index', index, @config['settings']['box_types']['ingest'])
+        elastic_action_with_log('chill_index', index, @config['settings']['box_types']['store'])
       else
         log.warn "#{index} index not found"
       end
     end
   end
 
-  def close
+  def chill
     indices, date_from, date_to, daysago = prepare_vars
     prechecks(date_from, date_to)
-    indices = close_populate_indices(indices, date_from, date_to, daysago)
+    indices = chill_populate_indices(indices, date_from, date_to, daysago)
     log.debug indices.inspect
-    do_close(indices)
+    do_chill(indices)
   end
 end

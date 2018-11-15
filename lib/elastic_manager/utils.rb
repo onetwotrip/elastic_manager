@@ -67,10 +67,28 @@ module Utils
   end
 
   def already?(response, state)
-    index = json_parse(response).first
-    if index['status'] == state
-      log.warn "#{index['index']} index status already #{state}"
-      return true
+    if %w[open close].include?(state)
+      index = json_parse(response).first
+      if index['status'] == state
+        log.warn "#{index['index']} index status already #{state}"
+        return true
+      end
+    elsif %w[hot warm].include?(state)
+      index    = json_parse(response).first['index']
+      box_type = @elastic.index_box_type(index)
+
+      if box_type.nil?
+        log.info "can't get box_type, look at the previous error for info, will skip #{index}"
+        return true
+      end
+
+      if box_type == state
+        log.warn "#{index['index']} index already #{state}"
+        return true
+      end
+    else
+      log.fatal "wrong state for check #{state}, bad coder"
+      exit 1
     end
 
     false

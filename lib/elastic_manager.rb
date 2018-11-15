@@ -8,6 +8,7 @@ require 'elastic_manager/request'
 require 'elastic_manager/utils'
 require 'elastic_manager/open'
 require 'elastic_manager/close'
+require 'elastic_manager/chill'
 
 # Main
 class ElasticManager
@@ -17,6 +18,7 @@ class ElasticManager
   include Utils
   include Open
   include Close
+  include Chill
 
   def initialize
     @config = load_from_env
@@ -29,6 +31,8 @@ class ElasticManager
       open
     elsif @config['task'].casecmp('close').zero?
       close
+    elsif @config['task'].casecmp('chill').zero?
+      chill
     else
       fail_and_exit('wrong task')
     end
