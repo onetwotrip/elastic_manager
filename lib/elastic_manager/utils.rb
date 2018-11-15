@@ -31,7 +31,7 @@ module Utils
        @config['settings'][index_name]['skip'][state]
 
       if true?(@config['settings'][index_name]['skip'][state])
-        log.warn "#{index_name} index open skiped"
+        log.warn "#{index_name} index #{state} skiped due settings"
         return true
       end
     end
@@ -60,5 +60,34 @@ module Utils
     return if @elastic.green?
 
     fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
+  end
+
+  def already?(response, state)
+    index = json_parse(response).first
+    if index['status'] == state
+      log.warn "#{index['index']} index status already #{state}"
+      return true
+    end
+
+    false
+  end
+
+  def elastic_action_with_log(action, index, *params)
+    if @elastic.send(action, index, *params)
+      log.info "#{index} #{action} succes"
+    else
+      log.error "#{index} #{action} fail"
+    end
+  end
+
+  def index_exist?(response)
+    if response.code == 200
+      true
+    elsif response.code == 404
+      false
+    else
+      log.fatal "wtf in index_exist? response was: #{response.code} - #{response}"
+      exit 1
+    end
   end
 end

@@ -169,7 +169,7 @@ module Request
         if snapshot.size == 1
           snapshot.first['snapshot']
         else
-          log.fatal "wrong snapshot size"
+          log.fatal 'wrong snapshot size'
           exit 1
         end
       else
@@ -230,6 +230,33 @@ module Request
       end
 
       response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def close_index(index, tag)
+      box_type = request(:get, "/#{index}/_settings/index.routing.allocation.require.box_type")
+      if box_type.code == 200
+        box_type = json_parse(box_type)
+        log.debug "for #{index} box_type is #{box_type}"
+      else
+        log.fatal "can't check box_type for #{index}, response was: #{box_type.code} - #{box_type}"
+        return
+      end
+
+      if box_type[index]['settings']['index']['routing']['allocation']['require']['box_type'] == tag
+        log.fatal "i will not close index #{index} in box_type #{tag}"
+        return
+      else
+        response = request(:post, "/#{index}/_close?master_timeout=1m")
+
+        if response.code == 200
+          response = json_parse(response)
+        else
+          log.fatal "wrong response code for #{index} close"
+          exit 1
+        end
+
+        response['acknowledged'].is_a?(TrueClass)
+      end
     end
   end
 end

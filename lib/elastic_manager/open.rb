@@ -6,36 +6,7 @@ require 'elastic_manager/logger'
 module Open
   include Logging
 
-  def index_exist?(response)
-    if response.code == 200
-      true
-    elsif response.code == 404
-      false
-    else
-      log.fatal "wtf in index_exist? response was: #{response.code} - #{response}"
-      exit 1
-    end
-  end
-
-  def already_open?(response)
-    index = json_parse(response).first
-    if index['status'] == 'open'
-      log.warn "#{index['index']} index status already open"
-      return true
-    end
-
-    false
-  end
-
-  def action_with_log(action, index)
-    if @elastic.send(action, index)
-      log.info "#{index} #{action} succes"
-    else
-      log.error "#{index} #{action} fail"
-    end
-  end
-
-  def populate_indices(indices, date_from, date_to, daysago)
+  def open_populate_indices(indices, date_from, date_to, daysago)
     result = []
 
     if indices.length == 1 && indices.first == '_all'
@@ -70,14 +41,14 @@ module Open
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)
-        next if already_open?(response)
+        next if already?(response, 'open')
 
-        action_with_log('open_index', index)
+        elastic_action_with_log('open_index', index)
       else
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        action_with_log('restore_snapshot', index)
+        elastic_action_with_log('restore_snapshot', index)
       end
     end
   end
@@ -85,10 +56,8 @@ module Open
   def open
     indices, date_from, date_to, daysago = prepare_vars
     prechecks(date_from, date_to)
-    indices = populate_indices(indices, date_from, date_to, daysago)
-
+    indices = open_populate_indices(indices, date_from, date_to, daysago)
     log.debug indices.inspect
-
     do_open(indices)
   end
 end

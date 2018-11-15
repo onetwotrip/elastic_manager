@@ -7,6 +7,7 @@ require 'elastic_manager/logger'
 require 'elastic_manager/request'
 require 'elastic_manager/utils'
 require 'elastic_manager/open'
+require 'elastic_manager/close'
 
 # Main
 class ElasticManager
@@ -15,6 +16,7 @@ class ElasticManager
   include Request
   include Utils
   include Open
+  include Close
 
   def initialize
     @config = load_from_env
