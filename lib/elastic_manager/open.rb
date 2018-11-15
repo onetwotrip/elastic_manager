@@ -6,20 +6,6 @@ require 'elastic_manager/logger'
 module Open
   include Logging
 
-  def open_prechecks(date_from, date_to)
-    unless date_from.nil?
-      if date_from > date_to
-        log.fatal "wrong dates: date to is behind date from. from: #{date_from}, to: #{date_to}"
-        exit 1
-      end
-    end
-
-    return if true?(@config['force'])
-    return if @elastic.green?
-
-    fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
-  end
-
   def index_exist?(response)
     if response.code == 200
       true
@@ -98,7 +84,7 @@ module Open
 
   def open
     indices, date_from, date_to, daysago = prepare_vars
-    open_prechecks(date_from, date_to)
+    prechecks(date_from, date_to)
     indices = populate_indices(indices, date_from, date_to, daysago)
 
     log.debug indices.inspect

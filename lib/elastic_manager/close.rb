@@ -8,5 +8,6 @@ module Close
 
   def close
     indices, date_from, date_to, daysago = prepare_vars
+    prechecks(date_from, date_to)
   end
 end
