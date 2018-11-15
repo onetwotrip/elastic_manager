@@ -23,14 +23,18 @@ module Utils
     exit 1
   end
 
+  def make_index_name(index)
+    index.split('-')[0..-2].join('-')
+  end
+
   def skip_index?(index, state)
-    index_name = index.split('-')[0..-2].join('-')
+    index_name = make_index_name(index)
 
-    if @config['settings'][index_name] &&
-       @config['settings'][index_name]['skip'] &&
-       @config['settings'][index_name]['skip'][state]
+    if @config['settings']['indices'][index_name] &&
+       @config['settings']['indices'][index_name]['skip'] &&
+       @config['settings']['indices'][index_name]['skip'][state]
 
-      if true?(@config['settings'][index_name]['skip'][state])
+      if true?(@config['settings']['indices'][index_name]['skip'][state])
         log.warn "#{index_name} index #{state} skiped due settings"
         return true
       end

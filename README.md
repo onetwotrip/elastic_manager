@@ -17,7 +17,8 @@ Progress:
 - [x] Open by date from and to
 - [x] Open by daysago
 - [x] Open all indices
-- [ ] Close indices
+- [x] Close indices
 - [ ] Chill indices
 - [ ] Snapshot indices
 - [ ] Delete snapshots
+- [x] Override daysago for concrete index

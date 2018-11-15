@@ -70,7 +70,17 @@ module Request
       false
     end
 
-    def all_indices_in_snapshots(from=nil, to=nil, daysago=nil)
+    def override_daysago(index_name, indices_config, daysago)
+      if indices_config[index_name] &&
+         indices_config[index_name]['daysago'] &&
+         !indices_config[index_name]['daysago'].to_s.empty?
+        indices_config[index_name]['daysago']
+      else
+        daysago
+      end
+    end
+
+    def all_indices_in_snapshots(from=nil, to=nil, daysago=nil, indices_config)
       all_snapshots = get_all_snapshots
       all_snapshots.select! { |snap| snap['status'] == 'SUCCESS' }
 
@@ -83,10 +93,13 @@ module Request
           next
         end
 
-        if from.nil? && snap_date < (Date.today - daysago)
-          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
+        index = snap['id'].gsub('snapshot_', '')
+        daysago_local = override_daysago(make_index_name(index), indices_config, daysago)
+
+        if from.nil? && snap_date < (Date.today - daysago_local)
+          result << CGI.escape(index)
         elsif (from..to).cover? snap_date
-          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
+          result << CGI.escape(index)
         end
       end
 
@@ -105,7 +118,7 @@ module Request
       end
     end
 
-    def all_indices(from=nil, to=nil, daysago=nil, state=nil, type=nil)
+    def all_indices(from=nil, to=nil, daysago=nil, state=nil, type=nil, indices_config)
       indices = get_all_indices
 
       # TODO: (anton.ryabov) next line just for debug purpose, need better handling
@@ -123,7 +136,9 @@ module Request
           next
         end
 
-        if from.nil? && index_date < (Date.today - daysago)
+        daysago_local = override_daysago(make_index_name(index), indices_config, daysago)
+
+        if from.nil? && index_date < (Date.today - daysago_local)
           result << CGI.escape(index)
         elsif (from..to).cover? index_date
           result << CGI.escape(index)
