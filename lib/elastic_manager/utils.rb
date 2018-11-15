@@ -38,4 +38,13 @@ module Utils
 
     false
   end
+
+  def prepare_vars
+    indices   = @config['indices'].split(',')
+    daysago   = @config['daysago']
+    date_from = @config['from']
+    date_to   = @config['to']
+
+    [indices, date_from, date_to, daysago]
+  end
 end

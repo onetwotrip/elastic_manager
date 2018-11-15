@@ -41,15 +41,6 @@ module Open
     false
   end
 
-  def open_prepare_vars
-    indices   = @config['indices'].split(',')
-    daysago   = @config['daysago']
-    date_from = @config['from']
-    date_to   = @config['to']
-
-    [indices, date_from, date_to, daysago]
-  end
-
   def action_with_log(action, index)
     if @elastic.send(action, index)
       log.info "#{index} #{action} succes"
@@ -106,7 +97,7 @@ module Open
   end
 
   def open
-    indices, date_from, date_to, daysago = open_prepare_vars
+    indices, date_from, date_to, daysago = prepare_vars
     open_prechecks(date_from, date_to)
     indices = populate_indices(indices, date_from, date_to, daysago)
 

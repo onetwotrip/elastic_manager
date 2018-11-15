@@ -7,6 +7,6 @@ module Close
   include Logging
 
   def close
-
+    indices, date_from, date_to, daysago = prepare_vars
   end
 end
