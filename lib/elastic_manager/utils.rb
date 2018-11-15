@@ -22,4 +22,20 @@ module Utils
     log.fatal text
     exit 1
   end
+
+  def skip_index?(index, state)
+    index_name = index.split('-')[0..-2].join('-')
+
+    if @config['settings'][index_name] &&
+       @config['settings'][index_name]['skip'] &&
+       @config['settings'][index_name]['skip'][state]
+
+      if true?(@config['settings'][index_name]['skip'][state])
+        log.warn "#{index_name} index open skiped"
+        return true
+      end
+    end
+
+    false
+  end
 end

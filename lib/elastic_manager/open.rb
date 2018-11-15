@@ -20,19 +20,6 @@ module Open
     fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
   end
 
-  def skip_open?(index)
-    index_name = index.split('-')[0..-2].join('-')
-
-    if @config['settings'][index_name] && @config['settings'][index_name]['skip_open']
-      if true?(@config['settings'][index_name]['skip_open'])
-        log.warn "#{index_name} index open skiped"
-        return true
-      end
-    end
-
-    false
-  end
-
   def index_exist?(response)
     if response.code == 200
       true
@@ -101,7 +88,7 @@ module Open
 
   def do_open(indices)
     indices.each do |index|
-      next if skip_open?(index)
+      next if skip_index?(index, 'open')
 
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
