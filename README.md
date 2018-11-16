@@ -19,8 +19,8 @@ Progress:
 - [x] Open all indices
 - [x] Close indices
 - [x] Chill indices
-- [ ] Delete indices
-- [ ] Snapshot indices
+- [x] Delete indices
+- [x] Snapshot indices
 - [ ] Delete snapshots
 - [x] Override daysago for concrete index
 - [x] Skip any task for specific index
