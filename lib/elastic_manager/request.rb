@@ -163,6 +163,19 @@ module Request
       end
     end
 
+    def snapshot_exist?(snapshot_name, repo)
+      response = request(:get, "/_snapshot/#{repo}/#{snapshot_name}/")
+
+      if response.code == 200
+        true
+      elsif response.code == 404
+        false
+      else
+        log.fatal "can't check snapshot existing, response was: #{response.code} - #{response}"
+        exit 1
+      end
+    end
+
     def find_snapshot_repo
       # TODO: we need improve this if several snapshot repos used in elastic
       response = request(:get, '/_snapshot/')
@@ -366,6 +379,19 @@ module Request
         log.error "can't snapshot #{index}, response was: #{response.code} - #{response}"
         false
       end
+    end
+
+    def delete_snapshot(snapshot, repo)
+      response = request(:delete, "/_snapshot/#{repo}/#{snapshot}")
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't delete snapshot #{snapshot}, response was: #{response.code} - #{response}"
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
     end
   end
 end

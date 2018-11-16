@@ -11,6 +11,7 @@ require 'elastic_manager/close'
 require 'elastic_manager/chill'
 require 'elastic_manager/snapshot'
 require 'elastic_manager/delete'
+require 'elastic_manager/snapdelete'
 
 # Main
 class ElasticManager
@@ -23,6 +24,7 @@ class ElasticManager
   include Chill
   include Snapshot
   include Delete
+  include SnapDelete
 
   def initialize
     @config = load_from_env
@@ -41,6 +43,8 @@ class ElasticManager
       snapshot
     elsif @config['task'].casecmp('delete').zero?
       delete
+    elsif @config['task'].casecmp('snapdelete').zero?
+      snapdelete
     else
       fail_and_exit('wrong task')
     end
