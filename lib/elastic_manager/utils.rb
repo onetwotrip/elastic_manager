@@ -44,7 +44,7 @@ module Utils
   end
 
   def prepare_vars
-    indices   = @config['indices'].split(',')
+    indices   = @config['indices'].split(',').map(&:strip)
     daysago   = @config['daysago']
     date_from = @config['from']
     date_to   = @config['to']
