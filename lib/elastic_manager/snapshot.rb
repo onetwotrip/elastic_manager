@@ -2,7 +2,7 @@
 
 require 'elastic_manager/logger'
 
-# Index closing operations
+# Index snapshoting operations
 module Snapshot
   include Logging
 
