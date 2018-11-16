@@ -7,6 +7,11 @@ require 'elastic_manager/logger'
 require 'elastic_manager/request'
 require 'elastic_manager/utils'
 require 'elastic_manager/open'
+require 'elastic_manager/close'
+require 'elastic_manager/chill'
+require 'elastic_manager/snapshot'
+require 'elastic_manager/delete'
+require 'elastic_manager/snapdelete'
 
 # Main
 class ElasticManager
@@ -15,6 +20,11 @@ class ElasticManager
   include Request
   include Utils
   include Open
+  include Close
+  include Chill
+  include Snapshot
+  include Delete
+  include SnapDelete
 
   def initialize
     @config = load_from_env
@@ -25,6 +35,18 @@ class ElasticManager
   def run
     if @config['task'].casecmp('open').zero?
       open
+    elsif @config['task'].casecmp('close').zero?
+      close
+    elsif @config['task'].casecmp('chill').zero?
+      chill
+    elsif @config['task'].casecmp('snapshot').zero?
+      snapshot
+    elsif @config['task'].casecmp('delete').zero?
+      delete
+    elsif @config['task'].casecmp('snapdelete').zero?
+      snapdelete
+    else
+      fail_and_exit('wrong task')
     end
   end
 end

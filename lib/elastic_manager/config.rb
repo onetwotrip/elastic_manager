@@ -35,15 +35,23 @@ module Config
     default['timeout']['connect'] = '3'
     default['timeout']['read']    = '120'
     default['daysago']            = ''
-    default['settings']           = {}
+    default['settings']           = {
+      'box_types' => {
+        'ingest' => 'hot',
+        'store'  => 'warm'
+      },
+      'indices' => {}
+    }
 
     log.debug "default config: #{default.inspect}"
     default
   end
 
-  def check_settings(var)
+  def check_settings(var, config)
     if var.casecmp('settings').zero?
-      json_parse(ENV[var])
+      env_settings = json_parse(ENV[var])
+      log.debug "env settings: #{env_settings}"
+      config['settings'].merge(env_settings)
     else
       ENV[var]
     end
@@ -58,7 +66,7 @@ module Config
       if vars.length == 2
         config[vars[0].downcase][vars[1].downcase] = ENV[var]
       elsif vars.length == 1
-        config[vars[0].downcase] = check_settings(vars[0])
+        config[vars[0].downcase] = check_settings(vars[0], config)
       end
     end
 

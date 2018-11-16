@@ -6,9 +6,9 @@ Manager for logstash indices in elasticsearch. Why? Because qurator sucks!
 
 Use ENV variables for run. Required variables:
 
-* TASK
-* INDICES
-* FROM-TO or DAYSAGO (FROM-TO pair have precedence over DAYSAGO)
+- TASK
+- INDICES
+- FROM-TO or DAYSAGO (FROM-TO pair have precedence over DAYSAGO)
 
 Progress:
 
@@ -17,7 +17,10 @@ Progress:
 - [x] Open by date from and to
 - [x] Open by daysago
 - [x] Open all indices
-- [ ] Close indices
-- [ ] Chill indices
-- [ ] Snapshot indices
-- [ ] Delete snapshots
+- [x] Close indices
+- [x] Chill indices
+- [x] Delete indices
+- [x] Snapshot indices
+- [x] Delete snapshots
+- [x] Override daysago for concrete index
+- [x] Skip any task for specific index

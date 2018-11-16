@@ -6,89 +6,24 @@ require 'elastic_manager/logger'
 module Open
   include Logging
 
-  def open_prechecks(date_from, date_to)
-    unless date_from.nil?
-      if date_from > date_to
-        log.fatal "wrong dates: date to is behind date from. from: #{date_from}, to: #{date_to}"
-        exit 1
-      end
-    end
-
-    unless true?(@config['force'])
-      unless @elastic.green?
-        fail_and_exit("elasticsearch on #{@config['es']['url']} is not green")
-      end
-    end
-  end
-
-  def skip_open?(index)
-    index_name = index.split('-')[0..-2].join('-')
-
-    if @config['settings'][index_name] && @config['settings'][index_name]['skip_open']
-      if true?(@config['settings'][index_name]['skip_open'])
-        log.warn "#{index_name} index open skiped"
-        return true
-      end
-    end
-
-    false
-  end
-
-  def index_exist?(response)
-    if response.code == 200
-      true
-    elsif response.code == 404
-      false
-    else
-      log.fatal "wtf in index_exist? response was: #{response.code} - #{response}"
-      exit 1
-    end
-  end
-
-  def already_open?(response)
-    index = json_parse(response).first
-    if index['status'] == 'open'
-      log.warn "#{index['index']} index status already open"
-      return true
-    end
-
-    false
-  end
-
-  def open_prepare_vars
-    indices   = @config['indices'].split(',')
-    daysago   = @config['daysago']
-    date_from = @config['from']
-    date_to   = @config['to']
-
-    [indices, date_from, date_to, daysago]
-  end
-
-  def action_with_log(action, index)
-    if @elastic.send(action, index)
-      log.info "#{index} #{action} succes"
-    else
-      log.error "#{index} #{action} fail"
-    end
-  end
-
-  def populate_indices(indices, date_from, date_to, daysago)
+  def open_populate_indices(indices, date_from, date_to, daysago)
     result = []
 
     if indices.length == 1 && indices.first == '_all'
-      result = @elastic.all_indices(date_from, date_to, daysago, 'close')
-      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago)
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config['settings']['indices'])
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices'])
       return result
     end
 
     if date_from.nil?
-      result = @elastic.all_indices(date_from, date_to, daysago, 'close')
-      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago)
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config['settings']['indices'])
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices'])
       return result.select { |r| r.start_with?(*indices) }
     else
       date_from.upto(date_to) do |date|
         indices.each do |index|
-          result << "#{index}-#{date.to_s.tr!('-', '.')}"
+          date_formatted = date.to_s.tr('-', '.')
+          result << "#{index}-#{date_formatted}"
         end
       end
     end
@@ -101,30 +36,28 @@ module Open
 
   def do_open(indices)
     indices.each do |index|
-      next if skip_open?(index)
+      next if skip_index?(index, 'open')
 
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)
-        next if already_open?(response)
+        next if already?(response, 'open')
 
-        action_with_log('open_index', index)
+        elastic_action_with_log('open_index', index)
       else
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        action_with_log('restore_snapshot', index)
+        elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
       end
     end
   end
 
   def open
-    indices, date_from, date_to, daysago = open_prepare_vars
-    open_prechecks(date_from, date_to)
-    indices = populate_indices(indices, date_from, date_to, daysago)
-
+    indices, date_from, date_to, daysago = prepare_vars
+    prechecks(date_from, date_to)
+    indices = open_populate_indices(indices, date_from, date_to, daysago)
     log.debug indices.inspect
-
     do_open(indices)
   end
 end

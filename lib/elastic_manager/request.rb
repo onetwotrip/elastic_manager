@@ -37,7 +37,6 @@ module Request
       tries ||= @retry
 
       yield
-
     rescue *RETRY_ERRORS => e
       log.warn "tries left #{tries + 1} '''#{e.message}''' sleeping #{@sleep} sec..."
       sleep @sleep
@@ -71,23 +70,36 @@ module Request
       false
     end
 
-    def all_indices_in_snapshots(from=nil, to=nil, daysago=nil)
+    def override_daysago(index_name, indices_config, daysago)
+      if indices_config[index_name] &&
+         indices_config[index_name]['daysago'] &&
+         !indices_config[index_name]['daysago'].to_s.empty?
+        indices_config[index_name]['daysago']
+      else
+        daysago
+      end
+    end
+
+    def all_indices_in_snapshots(from=nil, to=nil, daysago=nil, indices_config)
       all_snapshots = get_all_snapshots
       all_snapshots.select! { |snap| snap['status'] == 'SUCCESS' }
 
       result = []
       all_snapshots.each do |snap|
         begin
-          snap_date = Date.parse(snap['id'].gsub('-', ''))
+          snap_date = Date.parse(snap['id'].delete('-'))
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
         end
 
-        if from.nil? && snap_date < (Date.today - daysago)
-          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
+        index = snap['id'].gsub('snapshot_', '')
+        daysago_local = override_daysago(make_index_name(index), indices_config, daysago)
+
+        if from.nil? && snap_date < (Date.today - daysago_local)
+          result << CGI.escape(index)
         elsif (from..to).cover? snap_date
-          result << CGI.escape(snap['id'].gsub('snapshot_', ''))
+          result << CGI.escape(index)
         end
       end
 
@@ -106,7 +118,7 @@ module Request
       end
     end
 
-    def all_indices(from=nil, to=nil, daysago=nil, state=nil, type=nil)
+    def all_indices(from=nil, to=nil, daysago=nil, state=nil, type=nil, indices_config)
       indices = get_all_indices
 
       # TODO: (anton.ryabov) next line just for debug purpose, need better handling
@@ -118,13 +130,15 @@ module Request
       result = []
       indices.each do |index, _|
         begin
-          index_date = Date.parse(index.gsub('-', ''))
+          index_date = Date.parse(index.delete('-'))
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
         end
 
-        if from.nil? && index_date < (Date.today - daysago)
+        daysago_local = override_daysago(make_index_name(index), indices_config, daysago)
+
+        if from.nil? && index_date < (Date.today - daysago_local)
           result << CGI.escape(index)
         elsif (from..to).cover? index_date
           result << CGI.escape(index)
@@ -149,6 +163,19 @@ module Request
       end
     end
 
+    def snapshot_exist?(snapshot_name, repo)
+      response = request(:get, "/_snapshot/#{repo}/#{snapshot_name}/")
+
+      if response.code == 200
+        true
+      elsif response.code == 404
+        false
+      else
+        log.fatal "can't check snapshot existing, response was: #{response.code} - #{response}"
+        exit 1
+      end
+    end
+
     def find_snapshot_repo
       # TODO: we need improve this if several snapshot repos used in elastic
       response = request(:get, '/_snapshot/')
@@ -165,12 +192,12 @@ module Request
       response = request(:get, "/_snapshot/#{repo}/#{snapshot_name}/")
 
       if response.code == 200
-        snapshot = json_parse(response)['snapshots']
+        snapshot = json_parse(response)['snapshots'][0]
 
-        if snapshot.size == 1
-          snapshot.first['snapshot']
+        if snapshot['state'] == 'SUCCESS'
+          snapshot['snapshot']
         else
-          log.fatal "wrong snapshot size"
+          log.fatal 'wrong snapshot state'
           exit 1
         end
       else
@@ -179,7 +206,7 @@ module Request
       end
     end
 
-    def restore_snapshot(index)
+    def restore_snapshot(index, box_type)
       snapshot_name = "snapshot_#{index}"
       snapshot_repo = find_snapshot_repo
       snapshot      = find_snapshot(snapshot_repo, snapshot_name)
@@ -188,7 +215,7 @@ module Request
         index_settings: {
           'index.number_of_replicas'                  => 0,
           'index.refresh_interval'                    => -1,
-          'index.routing.allocation.require.box_type' => 'warm'
+          'index.routing.allocation.require.box_type' => box_type
         }
       }
       response = request(:post, "/_snapshot/#{snapshot_repo}/#{snapshot}/_restore", body)
@@ -227,7 +254,141 @@ module Request
         response = json_parse(response)
       else
         log.fatal "wrong response code for #{index} open"
-        exit 1
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def close_index(index, tag)
+      box_type = index_box_type(index)
+
+      return false if box_type.nil?
+
+      if box_type == tag
+        log.fatal "i will not close index #{index} in box_type #{tag}"
+        false
+      else
+        response = request(:post, "/#{index}/_close?master_timeout=1m")
+
+        if response.code == 200
+          response = json_parse(response)
+        else
+          log.fatal "wrong response code for #{index} close"
+          return false
+        end
+
+        response['acknowledged'].is_a?(TrueClass)
+      end
+    end
+
+    def index_box_type(index)
+      response = request(:get, "/#{index}/_settings/index.routing.allocation.require.box_type")
+
+      if response.code == 200
+        response = json_parse(response)
+        box_type = response[index]['settings']['index']['routing']['allocation']['require']['box_type']
+        log.debug "for #{index} box_type is #{box_type}"
+        box_type
+      else
+        log.fatal "can't check box_type for #{index}, response was: #{response.code} - #{response}"
+        nil
+      end
+    end
+
+    def chill_index(index, box_type)
+      body = {
+        'index.routing.allocation.require.box_type' => box_type
+      }
+      response = request(:put, "/#{index}/_settings?master_timeout=1m", body)
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't chill #{index}, response was: #{response.code} - #{response}"
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def delete_index(index)
+      snapshot_name = "snapshot_#{index}"
+      snapshot_repo = find_snapshot_repo
+
+      return false unless find_snapshot(snapshot_repo, snapshot_name)
+
+      response = request(:delete, "/#{index}")
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't delete index #{index}, response was: #{response.code} - #{response}"
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def wait_snapshot(snapshot, repo)
+      snapshot_ok = false
+
+      until snapshot_ok
+        sleep @sleep
+        response = request(:get, "/_snapshot/#{repo}/#{snapshot}/_status")
+
+        if response.code == 200
+          # TODO: (anton.ryabov) add logging of percent and time ?
+          # stats = status['snapshots'][0]['stats']
+          # msg = "(#{stats['total_size_in_bytes']/1024/1024/1024}Gb / #{stats['processed_size_in_bytes']/1024/1024/1024}Gb)"
+          # puts "Get backup status #{msg}: retry attempt #{attempt_number}; #{total_delay.round} seconds have passed."
+          state = json_parse(response)['snapshots'][0]['state']
+          log.debug "snapshot check response: #{response.code} - #{response}"
+
+          if state == 'SUCCESS'
+            snapshot_ok = true
+          elsif %w[FAILED PARTIAL INCOMPATIBLE].include?(state)
+            log.fatal "can't snapshot #{snapshot} in #{repo}: #{response.code} - #{response}"
+            exit 1
+          end
+        else
+          log.error "can't check snapshot: #{response.code} - #{response}"
+        end
+      end
+
+      true
+    end
+
+    def snapshot_index(index)
+      snapshot_name = "snapshot_#{index}"
+      snapshot_repo = find_snapshot_repo
+
+      body = {
+        'indices'              => index,
+        'ignore_unavailable'   => false,
+        'include_global_state' => false,
+        'partial'              => false
+      }
+
+      response = request(:put, "/_snapshot/#{snapshot_repo}/#{snapshot_name}/", body)
+
+      if response.code == 200
+        sleep 5
+        wait_snapshot(snapshot_name, snapshot_repo)
+      else
+        log.error "can't snapshot #{index}, response was: #{response.code} - #{response}"
+        false
+      end
+    end
+
+    def delete_snapshot(snapshot, repo)
+      response = request(:delete, "/_snapshot/#{repo}/#{snapshot}")
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't delete snapshot #{snapshot}, response was: #{response.code} - #{response}"
+        return false
       end
 
       response['acknowledged'].is_a?(TrueClass)
