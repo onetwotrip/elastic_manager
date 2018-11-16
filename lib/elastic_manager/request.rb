@@ -179,12 +179,12 @@ module Request
       response = request(:get, "/_snapshot/#{repo}/#{snapshot_name}/")
 
       if response.code == 200
-        snapshot = json_parse(response)['snapshots']
+        snapshot = json_parse(response)['snapshots'][0]
 
-        if snapshot.size == 1
-          snapshot.first['snapshot']
+        if snapshot['state'] == 'SUCCESS'
+          snapshot['snapshot']
         else
-          log.fatal 'wrong snapshot size'
+          log.fatal 'wrong snapshot state'
           exit 1
         end
       else
@@ -297,6 +297,75 @@ module Request
       end
 
       response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def delete_index(index)
+      snapshot_name = "snapshot_#{index}"
+      snapshot_repo = find_snapshot_repo
+
+      return false unless find_snapshot(snapshot_repo, snapshot_name)
+
+      response = request(:delete, "/#{index}")
+
+      if response.code == 200
+        response = json_parse(response)
+      else
+        log.fatal "can't delete index #{index}, response was: #{response.code} - #{response}"
+        return false
+      end
+
+      response['acknowledged'].is_a?(TrueClass)
+    end
+
+    def wait_snapshot(snapshot, repo)
+      snapshot_ok = false
+
+      until snapshot_ok
+        sleep @sleep
+        response = request(:get, "/_snapshot/#{repo}/#{snapshot}/_status")
+
+        if response.code == 200
+          # TODO: (anton.ryabov) add logging of percent and time ?
+          # stats = status['snapshots'][0]['stats']
+          # msg = "(#{stats['total_size_in_bytes']/1024/1024/1024}Gb / #{stats['processed_size_in_bytes']/1024/1024/1024}Gb)"
+          # puts "Get backup status #{msg}: retry attempt #{attempt_number}; #{total_delay.round} seconds have passed."
+          state = json_parse(response)['snapshots'][0]['state']
+          log.debug "snapshot check response: #{response.code} - #{response}"
+
+          if state == 'SUCCESS'
+            snapshot_ok = true
+          elsif %w[FAILED PARTIAL INCOMPATIBLE].include?(state)
+            log.fatal "can't snapshot #{snapshot} in #{repo}: #{response.code} - #{response}"
+            exit 1
+          end
+        else
+          log.error "can't check snapshot: #{response.code} - #{response}"
+        end
+      end
+
+      true
+    end
+
+    def snapshot_index(index)
+      snapshot_name = "snapshot_#{index}"
+      snapshot_repo = find_snapshot_repo
+
+      body = {
+        'indices'              => index,
+        'ignore_unavailable'   => false,
+        'include_global_state' => false,
+        'partial'              => false
+      }
+
+      response = request(:put, "/_snapshot/#{snapshot_repo}/#{snapshot_name}/", body)
+
+      if response.code == 200
+        sleep 5
+        wait_snapshot(snapshot_name, snapshot_repo)
+      else
+        log.error "can't snapshot #{index}, response was: #{response.code} - #{response}"
+        false
+      end
     end
   end
 end

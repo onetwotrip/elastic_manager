@@ -99,7 +99,10 @@ module Utils
       log.info "#{index} #{action} succes"
     else
       log.error "#{index} #{action} fail"
+      return false
     end
+
+    true
   end
 
   def index_exist?(response)
