@@ -10,14 +10,14 @@ module Open
     result = []
 
     if indices.length == 1 && indices.first == '_all'
-      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config['settings']['indices'])
-      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices'])
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config)
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config)
       return result
     end
 
     if date_from.nil?
-      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config['settings']['indices'])
-      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices'])
+      result = @elastic.all_indices(date_from, date_to, daysago, 'close', nil, @config)
+      result += @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config)
       return result.select { |r| r.start_with?(*indices) }
     else
       date_from.upto(date_to) do |date|

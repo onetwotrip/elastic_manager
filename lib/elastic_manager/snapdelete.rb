@@ -10,10 +10,10 @@ module SnapDelete
     result = []
 
     if indices.length == 1 && indices.first == '_all'
-      result = @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices'])
+      result = @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config)
     else
       if date_from.nil?
-        result = @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config['settings']['indices']).select { |r| r.start_with?(*indices) }
+        result = @elastic.all_indices_in_snapshots(date_from, date_to, daysago, @config).select { |r| r.start_with?(*indices) }
       else
         date_from.upto(date_to) do |date|
           indices.each do |index|
