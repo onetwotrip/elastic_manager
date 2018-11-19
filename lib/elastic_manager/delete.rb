@@ -10,10 +10,10 @@ module Delete
     result = []
 
     if indices.length == 1 && indices.first == '_all'
-      result = @elastic.all_indices(date_from, date_to, daysago, nil, nil, @config['settings']['indices'])
+      result = @elastic.all_indices(date_from, date_to, daysago, nil, nil, @config)
     else
       if date_from.nil?
-        result = @elastic.all_indices(date_from, date_to, daysago, nil, nil, @config['settings']['indices']).select { |r| r.start_with?(*indices) }
+        result = @elastic.all_indices(date_from, date_to, daysago, nil, nil, @config).select { |r| r.start_with?(*indices) }
       else
         date_from.upto(date_to) do |date|
           indices.each do |index|
