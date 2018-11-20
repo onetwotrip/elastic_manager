@@ -289,7 +289,7 @@ module Request
 
       if response.code == 200
         response = json_parse(response)
-        box_type = response[index]['settings']['index']['routing']['allocation']['require']['box_type']
+        box_type = response[CGI.unescape(index)]['settings']['index']['routing']['allocation']['require']['box_type']
         log.debug "for #{index} box_type is #{box_type}"
         box_type
       else
