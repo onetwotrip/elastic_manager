@@ -71,11 +71,12 @@ module Request
     end
 
     def override_daysago(index_name, config, daysago)
-      if config[index_name] &&
-         config[index_name]['daysago'] &&
-         config[index_name]['daysago'][config['task']] &&
-         !config[index_name]['daysago'][config['task']].to_s.empty?
-        config[index_name]['daysago'][config['task']].to_i
+      if config['indices'][index_name] &&
+         config['indices'][index_name]['daysago'] &&
+         config['indices'][index_name]['daysago'][config['task']] &&
+         !config['indices'][index_name]['daysago'][config['task']].to_s.empty?
+        log.debug config['indices'][index_name]['daysago'][config['task']]
+        config['indices'][index_name]['daysago'][config['task']].to_i
       else
         daysago.to_i
       end
