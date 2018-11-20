@@ -75,9 +75,9 @@ module Request
          config[index_name]['daysago'] &&
          config[index_name]['daysago'][config['task']] &&
          !config[index_name]['daysago'][config['task']].to_s.empty?
-        config[index_name]['daysago']
+        config[index_name]['daysago'].to_i
       else
-        daysago
+        daysago.to_i
       end
     end
 
