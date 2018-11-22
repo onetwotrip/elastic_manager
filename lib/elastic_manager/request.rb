@@ -373,7 +373,7 @@ module Request
         'partial'              => false
       }
 
-      response = request(:put, "/_snapshot/#{snapshot_repo}/#{index}/", body)
+      response = request(:put, "/_snapshot/#{snapshot_repo}/#{snapshot_name}/", body)
 
       if response.code == 200
         sleep 5
