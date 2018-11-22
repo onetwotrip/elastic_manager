@@ -24,3 +24,4 @@ Progress:
 - [x] Delete snapshots
 - [x] Override daysago for concrete index
 - [x] Skip any task for specific index
+- [ ] Skip index deleting when snapshot if configured

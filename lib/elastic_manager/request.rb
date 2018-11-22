@@ -350,6 +350,7 @@ module Request
           if state == 'SUCCESS'
             snapshot_ok = true
           elsif %w[FAILED PARTIAL INCOMPATIBLE].include?(state)
+            # TODO: (anton.ryabov) add slack notify due failed snapshot
             log.fatal "can't snapshot #{snapshot} in #{repo}: #{response.code} - #{response}"
             exit 1
           end
@@ -366,18 +367,19 @@ module Request
       snapshot_repo = find_snapshot_repo
 
       body = {
-        'indices'              => index,
+        'indices'              => CGI.unescape(index),
         'ignore_unavailable'   => false,
         'include_global_state' => false,
         'partial'              => false
       }
 
-      response = request(:put, "/_snapshot/#{snapshot_repo}/#{snapshot_name}/", body)
+      response = request(:put, "/_snapshot/#{snapshot_repo}/#{index}/", body)
 
       if response.code == 200
         sleep 5
         wait_snapshot(snapshot_name, snapshot_repo)
       else
+        # TODO: (anton.ryabov) add slack notify due failed snapshot
         log.error "can't snapshot #{index}, response was: #{response.code} - #{response}"
         false
       end
