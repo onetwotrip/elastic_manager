@@ -75,7 +75,7 @@ module Request
          config['indices'][index_name]['daysago'] &&
          config['indices'][index_name]['daysago'][config['task']] &&
          !config['indices'][index_name]['daysago'][config['task']].to_s.empty?
-        log.debug config['indices'][index_name]['daysago'][config['task']]
+        log.debug "will override daysago for #{index_name} with #{config['indices'][index_name]['daysago'][config['task']]}"
         config['indices'][index_name]['daysago'][config['task']].to_i
       else
         daysago.to_i
@@ -356,6 +356,7 @@ module Request
           end
         else
           log.error "can't check snapshot: #{response.code} - #{response}"
+          # TODO: (anton.ryabov) we need tries mechanizm here
         end
       end
 
@@ -376,7 +377,6 @@ module Request
       response = request(:put, "/_snapshot/#{snapshot_repo}/#{snapshot_name}/", body)
 
       if response.code == 200
-        sleep 5
         wait_snapshot(snapshot_name, snapshot_repo)
       else
         # TODO: (anton.ryabov) add slack notify due failed snapshot
