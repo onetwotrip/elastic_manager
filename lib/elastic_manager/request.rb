@@ -200,12 +200,12 @@ module Request
         if snapshot['state'] == 'SUCCESS'
           snapshot['snapshot']
         else
-          log.fatal 'wrong snapshot state'
-          exit 1
+          log.error 'wrong snapshot state'
+          return false
         end
       else
-        log.fatal "can't find snapshot #{snapshot_name} in #{repo} response was: #{response.code} - #{response}"
-        exit 1
+        log.error "can't find snapshot #{snapshot_name} in #{repo} response was: #{response.code} - #{response}"
+        false
       end
     end
 
@@ -213,6 +213,8 @@ module Request
       snapshot_name = "snapshot_#{index}"
       snapshot_repo = find_snapshot_repo
       snapshot      = find_snapshot(snapshot_repo, snapshot_name)
+
+      return false unless snapshot
 
       body = {
         index_settings: {
@@ -227,8 +229,8 @@ module Request
         sleep 5
         wait_snapshot_restore(index)
       else
-        log.fatal "can't restore snapshot #{snapshot_name} response was: #{response.code} - #{response}"
-        exit 1
+        log.error "can't restore snapshot #{snapshot_name} response was: #{response.code} - #{response}"
+        false
       end
     end
 
@@ -241,7 +243,7 @@ module Request
 
         if response.code == 200
           # TODO: (anton.ryabov) add logging of percent and time ?
-          restore_ok = json_parse(response)[index]['shards'].map { |s| s['stage'] == 'DONE' }.all?{ |a| a == true }
+          restore_ok = json_parse(response)[index]['shards'].map { |s| s['stage'] == 'DONE' }.all? { |a| a }
         else
           log.error "can't check recovery: #{response.code} - #{response}"
         end
