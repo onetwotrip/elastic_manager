@@ -110,12 +110,14 @@ module Utils
   end
 
   def elastic_action_with_log(action, index, *params)
-    if @elastic.send(action, index, *params)
-      log.info "#{index} #{action} succes"
-    else
-      log.error "#{index} #{action} fail"
-      return false
-    end
+    # if @elastic.send(action, index, *params)
+    #   log.info "#{index} #{action} succes"
+    # else
+    #   log.error "#{index} #{action} fail"
+    #   return false
+    # end
+
+    log.info "#{index} #{action}"
 
     true
   end
