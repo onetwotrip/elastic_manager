@@ -43,6 +43,21 @@ module Utils
     false
   end
 
+  def delete_without_snapshot?(index)
+    index_name = make_index_name(index)
+
+    if @config['settings']['indices'][index_name] &&
+       @config['settings']['indices'][index_name]['delete_without_snapshot']
+
+      if true?(@config['settings']['indices'][index_name]['delete_without_snapshot'])
+        log.warn "#{index_name} index can be deleted without snapshot"
+        return true
+      end
+    end
+
+    false
+  end
+
   def prepare_vars
     indices   = @config['indices'].split(',').map(&:strip)
     daysago   = @config['daysago']

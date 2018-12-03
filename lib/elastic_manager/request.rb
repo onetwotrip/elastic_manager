@@ -317,11 +317,13 @@ module Request
       response['acknowledged'].is_a?(TrueClass)
     end
 
-    def delete_index(index)
-      snapshot_name = "snapshot_#{index}"
-      snapshot_repo = find_snapshot_repo
+    def delete_index(index, delete_without_snapshot=false)
+      unless delete_without_snapshot
+        snapshot_name = "snapshot_#{index}"
+        snapshot_repo = find_snapshot_repo
 
-      return false unless find_snapshot(snapshot_repo, snapshot_name)
+        return false unless find_snapshot(snapshot_repo, snapshot_name)
+      end
 
       response = request(:delete, "/#{index}")
 

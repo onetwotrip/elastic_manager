@@ -37,7 +37,8 @@ module Delete
       response = @elastic.request(:get, "/_cat/indices/#{index}")
 
       if index_exist?(response)
-        elastic_action_with_log('delete_index', index)
+
+        elastic_action_with_log('delete_index', index, delete_without_snapshot?(index))
       else
         log.warn "#{index} index not found"
       end
