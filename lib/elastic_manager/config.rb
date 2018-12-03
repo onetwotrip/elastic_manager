@@ -49,7 +49,8 @@ module Config
 
   def check_settings(var, config)
     if var.casecmp('settings').zero?
-      env_settings = json_parse(ENV[var])
+      settings     = ENV[var]
+      env_settings = json_parse(File.file?(settings) ? File.read(settings) : settings)
       log.debug "env settings: #{env_settings}"
       config['settings'].merge(env_settings)
     else
