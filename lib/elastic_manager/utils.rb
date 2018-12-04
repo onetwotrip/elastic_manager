@@ -46,6 +46,16 @@ module Utils
   def delete_without_snapshot?(index)
     index_name = make_index_name(index)
 
+    # ALARM! this can be enabled only for development logs, otherwise indices without snapshots can be deleted!
+    if @config['settings']['indices']['_all'] &&
+       @config['settings']['indices']['_all']['delete_without_snapshot']
+
+      if true?(@config['settings']['indices']['_all']['delete_without_snapshot'])
+        log.warn 'any index can be deleted without snapshot due global settings'
+        return true
+      end
+    end
+
     if @config['settings']['indices'][index_name] &&
        @config['settings']['indices'][index_name]['delete_without_snapshot']
 
