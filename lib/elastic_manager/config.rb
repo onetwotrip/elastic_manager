@@ -29,7 +29,7 @@ module Config
 
     default['es']['url']          = 'http://127.0.0.1:9200'
     default['retry']              = '10'
-    default['sleep']              = '60'
+    default['sleep']              = '30'
     default['force']              = 'false'
     default['timeout']['write']   = '2'
     default['timeout']['connect'] = '3'
