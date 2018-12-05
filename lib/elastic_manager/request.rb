@@ -341,7 +341,7 @@ module Request
       snapshot_ok = false
 
       until snapshot_ok
-        sleep @sleep
+        sleep @sleep / 2
         response = request(:get, "/_snapshot/#{repo}/#{snapshot}/_status")
 
         if response.code == 200
