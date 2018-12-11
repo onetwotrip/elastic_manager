@@ -35,6 +35,8 @@ module Open
   end
 
   def do_open(indices)
+    results = []
+
     indices.each do |index|
       next if skip_index?(index, 'open')
 
@@ -43,14 +45,19 @@ module Open
       if index_exist?(response)
         next if already?(response, 'open')
 
-        elastic_action_with_log('open_index', index)
+        results << elastic_action_with_log('open_index', index)
       else
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
+        results << elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
       end
     end
+
+    exit 1 if results.all? { |e| e.is_a?(FalseClass) }
+    # It is little bit confusing, but we catch exit code 2 in jenkins
+    # for mark build as unstable instead of just fail it
+    exit 2 if results.any? { |e| e.is_a?(FalseClass) }
   end
 
   def open
