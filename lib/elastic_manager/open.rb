@@ -54,7 +54,10 @@ module Open
       end
     end
 
-    exit 1 if results.any? { |e| e.is_a?(FalseClass) }
+    exit 1 if results.all? { |e| e.is_a?(FalseClass) }
+    # It is little bit confusing, but we catch exit code 2 in jenkins
+    # for mark build as unstable instead of just fail it
+    exit 2 if results.any? { |e| e.is_a?(FalseClass) }
   end
 
   def open
