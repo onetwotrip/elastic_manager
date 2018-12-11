@@ -35,7 +35,7 @@ module Open
   end
 
   def do_open(indices)
-    errors = []
+    results = []
 
     indices.each do |index|
       next if skip_index?(index, 'open')
@@ -45,16 +45,16 @@ module Open
       if index_exist?(response)
         next if already?(response, 'open')
 
-        errors << elastic_action_with_log('open_index', index)
+        results << elastic_action_with_log('open_index', index)
       else
         log.warn "#{index} index not found"
         log.info "#{index} trying snapshot restore"
 
-        errors << elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
+        results << elastic_action_with_log('restore_snapshot', index, @config['settings']['box_types']['store'])
       end
     end
 
-    exit 1 if errors.any? { |e| e.is_a?(FalseClass) }
+    exit 1 if results.any? { |e| e.is_a?(FalseClass) }
   end
 
   def open
