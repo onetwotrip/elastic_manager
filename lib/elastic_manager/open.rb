@@ -54,6 +54,11 @@ module Open
       end
     end
 
+    if results.empty?
+      log.warn 'looks like we skipped all indices'
+      exit 0
+    end
+
     exit 1 if results.all? { |e| e.is_a?(FalseClass) }
     # It is little bit confusing, but we catch exit code 2 in jenkins
     # for mark build as unstable instead of just fail it
