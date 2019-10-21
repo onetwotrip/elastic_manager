@@ -25,3 +25,11 @@ Progress:
 - [x] Override daysago for concrete index
 - [x] Skip any task for specific index
 - [ ] Skip index deleting when snapshot if configured
+
+# NEW
+
+test gem localy
+ruby -Ilib bin/elastic_manager
+
+dry run режим ?
+удалять роли которых нет в конфиге ?
