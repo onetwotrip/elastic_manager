@@ -53,6 +53,8 @@ module Request
       uri = @url + url
       log.debug "uri: #{uri}"
 
+      # Prepare ssl context for requests ... WTF?
+      # TODO: (anton.ryabov) mb make changes in http gem for https://github.com/httprb/http/issues/309 ?
       ctx = OpenSSL::SSL::SSLContext.new
       ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
