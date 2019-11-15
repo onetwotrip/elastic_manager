@@ -7,7 +7,7 @@ require 'elastic_manager/request'
 # require 'elastic_manager/open'
 # require 'elastic_manager/close'
 # require 'elastic_manager/chill'
-# require 'elastic_manager/snapshot'
+require 'elastic_manager/snapshot'
 # require 'elastic_manager/delete'
 # require 'elastic_manager/snapdelete'
 
@@ -20,7 +20,7 @@ class ElasticManager
   # include Open
   # include Close
   # include Chill
-  # include Snapshot
+  include Snapshot
   # include Delete
   # include SnapDelete
 
@@ -229,15 +229,51 @@ class ElasticManager
     end
   end
 
-  def snapshot
-    log.warn 'command snapshot not implemented yet'
+  def all_indices
+    url = '/_cluster/state/metadata/'
+    url = "#{url}?filter_path=metadata.indices.*.state,"
+    url = "#{url}metadata.indices.*.settings.index.routing.allocation.require.box_type"
+
+    res = @elastic.request(:get, url)
+    if res.code == 200
+      JSON.parse(res)['metadata']['indices']
+    else
+      log.error "can't get all indices: #{res.code} - #{res.body}"
+      false
+    end
   end
 
   def snapdelete
     log.warn 'command snapdelete not implemented yet'
+    # get config for snapdelete
+    # get all snapshots
+    # iterate all snapshots
+    #   if snapshot date later then days in config
+    #     delete snapshot
+    #   else
+    #     next
+    #   end
+    # end
+    # exit if can't get all indices
+    # log and log to slack if can't get config
+    # log and log to slack if can't all snapshots
+    # log to slack if can't delete
   end
 
   def open
     log.warn 'command open not implemented yet'
+    # get parameters
+    # prepare indices array
+    # iterate indices
+    #   next if index exist and open
+    #   unfreeze if index exist and frozen
+    #   else add to need snapshot queue
+    # end
+    # iterate snapshot queue
+    #   restore if snapshot exist
+    #   log to slack if no snapshot found
+    # end
+    # exit if bad parameters
+    # prepare exit code
   end
 end
