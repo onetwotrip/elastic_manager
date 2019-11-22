@@ -27,6 +27,7 @@ class ElasticManager
   TWIKET_USERS = %w[
     nginx
     logstash_internal
+    apm_internal
   ].freeze
 
   def initialize
@@ -76,7 +77,7 @@ class ElasticManager
 
   def sync_users
     log.info 'sync users'
-    elastic_users = JSON.parse(@elastic.request(:get, '/_xpack/security/user'))
+    elastic_users = JSON.parse(@elastic.request(:get, '/_security/user'))
     users_for_delete = []
     elastic_users.each do |user, params|
       next if params['metadata']['_reserved']
@@ -115,20 +116,20 @@ class ElasticManager
     sleep 3
 
     users_for_delete.each do |user|
-      res = @elastic.request(:delete, "/_xpack/security/user/#{user}")
+      res = @elastic.request(:delete, "/_security/user/#{user}")
       log.info "delete #{user}: #{res}"
     end
 
     users_for_update.each do |ufu|
       elastic_users[ufu]['roles'] = (elastic_users[ufu]['roles'] + @config['users'][ufu]['roles']).uniq
-      res = @elastic.request(:put, "/_xpack/security/user/#{ufu}", elastic_users[ufu])
+      res = @elastic.request(:put, "/_security/user/#{ufu}", elastic_users[ufu])
       log.info "update #{ufu}: #{res}"
     end
 
     users_for_create.each do |ufc|
       roles = ['kibana_user']
       # TODO: (anton.ryabov) rewrite this hardcoded cluster check
-      roles << 'twiket_read_all' if @config['cluster'] == 'devlogs'
+      roles << 'twiket_read_all' if @config['env'] == 'development'
       roles = roles + @config['users'][ufc]['roles'] if @config['users'][ufc].key?('roles')
 
       user_hash = {
@@ -136,11 +137,29 @@ class ElasticManager
         roles:    roles
       }
 
-      res = @elastic.request(:post, "/_xpack/security/user/#{ufc}", user_hash)
+      res = @elastic.request(:post, "/_security/user/#{ufc}", user_hash)
       log.info "create #{ufc}: #{res}"
     end
 
-    res = @elastic.request(:put, '/_xpack/security/role/nginx', { run_as: actual_users })
+    TWIKET_USERS.each do |user|
+      next if elastic_users[user]
+      if @config['system_users'].key?(user) && @config['system_users'][user] != ''
+        if @config['users'].key?(user) && @config['users'][user].key?('roles')
+          user_hash = {
+            password: @config['system_users'][user],
+            roles:    @config['users'][user]['roles']
+          }
+          res = @elastic.request(:post, "/_security/user/#{user}", user_hash)
+          log.info "create #{user}: #{res}"
+        else
+          log.warn "no roles for #{user} in vault"
+        end
+      else
+        log.warn "no password for #{user} in vault"
+      end
+    end
+
+    res = @elastic.request(:put, '/_security/role/nginx', { run_as: actual_users })
     log.info "update nginx role: #{res}"
   end
 

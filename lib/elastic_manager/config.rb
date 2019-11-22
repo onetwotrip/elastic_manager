@@ -14,12 +14,10 @@ module Config
     vault_address = ENV.fetch('VAULT_URL')
     role_id       = ENV.fetch('VAULT_ROLE_ID')
     secret_id     = ENV.fetch('VAULT_SECRET_ID')
-    cluster       = ENV.fetch('CLUSTER')
-    prefix        = "#{ENV.fetch('VAULT_PREFIX')}/#{cluster}"
+    env           = ENV.fetch('ELK_ENV')
+    prefix        = "#{ENV.fetch('VAULT_PREFIX')}/#{env}/elasticsearch"
 
-    config = {
-      'cluster' => cluster
-    }
+    config = { 'env' => env }
 
     vault = Vault::Client.new(address: vault_address)
     vault.auth.approle(role_id.to_s, secret_id.to_s)
