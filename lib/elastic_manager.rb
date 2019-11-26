@@ -207,6 +207,11 @@ class ElasticManager
   end
 
   def sync_templates
+    # 11-20 - 6 shards
+    # 21-40 - 4 shards
+    # 41-60 - 2 shards
+    # 61-99 - 1 shards
+
     log.info 'sync template'
     elastic_template = JSON.parse(@elastic.request(:get, '/_template'))
     template_for_delete = []
