@@ -33,6 +33,7 @@ class ElasticManager
   def initialize
     @config  = prepare_config
     @elastic = Request::Elastic.new(@config['system_users']['elastic'])
+    @kibana  = Request::Kibana.new(@config['system_users']['elastic'])
   end
 
   def sync_roles
@@ -127,9 +128,9 @@ class ElasticManager
     end
 
     users_for_create.each do |ufc|
-      roles = ['kibana_user']
+      roles = ['twiket_read_all']
       # TODO: (anton.ryabov) rewrite this hardcoded cluster check
-      roles << 'twiket_read_all' if @config['env'] == 'development'
+      # roles << 'twiket_read_all' # if @config['env'] == 'development'
       roles = roles + @config['users'][ufc]['roles'] if @config['users'][ufc].key?('roles')
 
       user_hash = {
@@ -172,8 +173,8 @@ class ElasticManager
       # due this any custom ilm must be named with twiket prefix
       next unless ilm.start_with?('twiket')
 
-      if @config['ilm'][ilm]
-        if @config['ilm'][ilm].key?('retired') && @config['ilm'][ilm]['retired']
+      if @config['ilms'][ilm]
+        if @config['ilms'][ilm].key?('retired') && @config['ilms'][ilm]['retired']
           log.warn "ilm '#{ilm}' retired"
         else
           next
@@ -184,7 +185,7 @@ class ElasticManager
     log.info "will delete ilm: #{ilm_for_delete}"
 
     ilm_for_create = []
-    @config['ilm'].each do |ilm, params|
+    @config['ilms'].each do |ilm, params|
       next if params['retired']
       ilm_for_create << ilm
     end
@@ -201,7 +202,7 @@ class ElasticManager
     # elastic will accept each request and increment policy version even if no difference in policies
     # how big number they have for version?
     ilm_for_create.each do |ilm|
-      res = @elastic.request(:put, "/_ilm/policy/#{ilm}", @config['ilm'][ilm]['config'])
+      res = @elastic.request(:put, "/_ilm/policy/#{ilm}", @config['ilms'][ilm]['config'])
       log.info "create #{ilm}: #{res}"
     end
   end
@@ -220,8 +221,8 @@ class ElasticManager
       # due this any custom template must be named with twiket prefix
       next unless template.start_with?('twiket')
 
-      if @config['template'][template]
-        if @config['template'][template].key?('retired') && @config['template'][template]['retired']
+      if @config['templates'][template]
+        if @config['templates'][template].key?('retired') && @config['templates'][template]['retired']
           log.warn "template '#{template}' retired"
         else
           next
@@ -232,7 +233,7 @@ class ElasticManager
     log.info "will delete template: #{template_for_delete}"
 
     template_for_create = []
-    @config['template'].each do |template, params|
+    @config['templates'].each do |template, params|
       next if params['retired']
       template_for_create << template
     end
@@ -248,8 +249,48 @@ class ElasticManager
     # TODO: (anton.ryabov) mb diff before and put only if changed?
     # template must have index patterns
     template_for_create.each do |template|
-      res = @elastic.request(:put, "/_template/#{template}", @config['template'][template]['config'])
+      res = @elastic.request(:put, "/_template/#{template}", @config['templates'][template]['config'])
       log.info "create #{template}: #{res}"
+    end
+  end
+
+  def sync_spaces
+    log.info 'sync spaces'
+    kibana_spaces = JSON.parse(@kibana.request(:get, '/api/spaces/space'))
+    spaces_for_delete = []
+    kibana_spaces.each do |ks|
+      next if ks['_reserved']
+      ks_id = ks['id']
+
+      if @config['spaces'][ks_id]
+        if @config['spaces'][ks_id].key?('retired') && @config['spaces'][ks_id]['retired']
+          log.warn "space '#{ks_id}' retired"
+        else
+          next
+        end
+      end
+      spaces_for_delete << ks_id
+    end
+    log.info "will delete spaces: #{spaces_for_delete}"
+
+    spaces_for_create = []
+    @config['spaces'].each do |space, params|
+      next if params['retired']
+      next if kibana_spaces.map { |ks| ks['id'] }.include?(space)
+      spaces_for_create << space
+    end
+    log.info "will put spaces: #{spaces_for_create}"
+
+    sleep 3
+
+    spaces_for_delete.each do |space|
+      res = @kibana.request(:delete, "/api/spaces/space/#{space}")
+      log.info "delete #{space}: #{res}"
+    end
+
+    spaces_for_create.each do |space|
+      res = @kibana.request(:post, '/api/spaces/space', @config['spaces'][space]['config'])
+      log.info "create #{space}: #{res}"
     end
   end
 

@@ -34,13 +34,17 @@ module Config
     raise 'no elastic users in vault' if vault_users.nil?
     config['users'] = JSON.parse(vault_users.data.to_json)
 
-    vault_ilm = vault.logical.read("#{prefix}/ilm")
+    vault_ilm = vault.logical.read("#{prefix}/ilms")
     raise 'no elastic ilm in vault' if vault_ilm.nil?
-    config['ilm'] = JSON.parse(vault_ilm.data.to_json)
+    config['ilms'] = JSON.parse(vault_ilm.data.to_json)
 
-    vault_template = vault.logical.read("#{prefix}/template")
+    vault_template = vault.logical.read("#{prefix}/templates")
     raise 'no elastic template in vault' if vault_template.nil?
-    config['template'] = JSON.parse(vault_template.data.to_json)
+    config['templates'] = JSON.parse(vault_template.data.to_json)
+
+    vault_spaces = vault.logical.read("#{prefix}/spaces")
+    raise 'no elastic template in vault' if vault_spaces.nil?
+    config['spaces'] = JSON.parse(vault_spaces.data.to_json)
 
     config
   end
