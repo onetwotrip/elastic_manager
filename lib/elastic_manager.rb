@@ -208,10 +208,10 @@ class ElasticManager
   end
 
   def sync_templates
-    # 11-20 - 6 shards
-    # 21-40 - 4 shards
-    # 41-60 - 2 shards
-    # 61-99 - 1 shards
+    # 101-200 - 1 shards
+    # 201-300 - 2 shards
+    # 401-500 - 4 shards
+    # 601-700 - 6 shards
 
     log.info 'sync template'
     elastic_template = JSON.parse(@elastic.request(:get, '/_template'))
