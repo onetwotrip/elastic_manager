@@ -46,6 +46,10 @@ module Config
     raise 'no elastic template in vault' if vault_spaces.nil?
     config['spaces'] = JSON.parse(vault_spaces.data.to_json)
 
+    vault_snapshot = vault.logical.read("#{prefix}/snapshot")
+    raise 'no elastic snapshot config in vault' if vault_snapshot.nil?
+    config['snapshot'] = JSON.parse(vault_snapshot.data.to_json)
+
     config
   end
 

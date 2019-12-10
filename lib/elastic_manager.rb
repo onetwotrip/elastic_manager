@@ -14,7 +14,7 @@ require 'elastic_manager/sync_ilms'
 require 'elastic_manager/sync_templates'
 require 'elastic_manager/sync_spaces'
 # require 'elastic_manager/delete'
-# require 'elastic_manager/snapdelete'
+require 'elastic_manager/snapdelete'
 
 # Main
 class ElasticManager
@@ -26,6 +26,7 @@ class ElasticManager
   # include Close
   # include Chill
   include Snapshot
+  include SnapDelete
   include Sync
   # include Delete
   # include SnapDelete
@@ -48,23 +49,6 @@ class ElasticManager
       log.error "can't get all indices: #{res.code} - #{res.body}"
       false
     end
-  end
-
-  def snapdelete
-    log.warn 'command snapdelete not implemented yet'
-    # get config for snapdelete
-    # get all snapshots
-    # iterate all snapshots
-    #   if snapshot date later then days in config
-    #     delete snapshot
-    #   else
-    #     next
-    #   end
-    # end
-    # exit if can't get all indices
-    # log and log to slack if can't get config
-    # log and log to slack if can't all snapshots
-    # log to slack if can't delete
   end
 
   def open
