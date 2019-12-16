@@ -50,6 +50,10 @@ module Config
     raise 'no elastic snapshot config in vault' if vault_snapshot.nil?
     config['snapshot'] = JSON.parse(vault_snapshot.data.to_json)
 
+    vault_slack = vault.logical.read("#{prefix}/slack")
+    raise 'no elastic slack config in vault' if vault_slack.nil?
+    config['slack'] = JSON.parse(vault_slack.data.to_json)
+
     config
   end
 

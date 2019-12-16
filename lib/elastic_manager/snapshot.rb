@@ -181,18 +181,25 @@ module Snapshot
       will_delete_after = find_delete_after(index)
       unless will_delete_after
         # SLACK: ERR: can't snapshot index #{index}: can't detect delete date
+        msg = "can't detect delete date for index '#{index}'"
+        log.error msg
+        log_to_slack msg
         next
       end
 
       if will_delete_after < 0
-        log.error "index #{index} should have been deleted by ILM but he is not!"
+        msg = "index #{index} should have been deleted by ILM but he is not!"
+        log.error msg
+        log_to_slack msg
         # SLACK: ERR: "index #{index} should have been deleted by ILM but he is not!"
         next
       elsif will_delete_after < @config['snapshot']['repos']['main']['deadline']['soft']['days'] + 1
         unless make_snapshot(index)
           if @config['snapshot']['repos']['main']['deadline']['hard']['enabled']
             if will_delete_after < @config['snapshot']['repos']['main']['deadline']['hard']['days'] + 1
-              log.error "can't snapshot index #{index} that will be deleted soon"
+              msg = "can't snapshot index #{index} that will be deleted soon"
+              log.error msg
+              log_to_slack msg
               # VICTOR: "can't snapshot index #{index} that will be deleted soon"
               # SLACK: ERR: "index #{index} should have been deleted by ILM but he is not!"
               next

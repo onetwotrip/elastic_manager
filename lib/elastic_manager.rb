@@ -3,6 +3,7 @@
 require 'elastic_manager/config'
 require 'elastic_manager/logger'
 require 'elastic_manager/request'
+require 'elastic_manager/slack'
 # require 'elastic_manager/utils'
 # require 'elastic_manager/open'
 # require 'elastic_manager/close'
@@ -21,6 +22,7 @@ class ElasticManager
   include Config
   include Logging
   include Request
+  include LogToSlack
   # include Utils
   # include Open
   # include Close
@@ -49,22 +51,5 @@ class ElasticManager
       log.error "can't get all indices: #{res.code} - #{res.body}"
       false
     end
-  end
-
-  def open
-    log.warn 'command open not implemented yet'
-    # get parameters
-    # prepare indices array
-    # iterate indices
-    #   next if index exist and open
-    #   unfreeze if index exist and frozen
-    #   else add to need snapshot queue
-    # end
-    # iterate snapshot queue
-    #   restore if snapshot exist
-    #   log to slack if no snapshot found
-    # end
-    # exit if bad parameters
-    # prepare exit code
   end
 end
