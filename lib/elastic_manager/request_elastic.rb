@@ -8,11 +8,10 @@ module Request
   # Elasticsearch requests wrapper
   class Elastic
     include Logging
-    include Utils
 
     RETRY_ERRORS = [StandardError, RuntimeError, Throttling].freeze
 
-    def initialize(elastic_pass)
+    def initialize(elastic_pass, url='https://127.0.0.1:9200')
       @client = HTTP.timeout(
         write:   2,
         connect: 3,
@@ -24,7 +23,7 @@ module Request
         user: 'elastic',
         pass: elastic_pass
       )
-      @url   = 'https://127.0.0.1:9200'
+      @url   = url
       @retry = 10
       @sleep = 30
     end

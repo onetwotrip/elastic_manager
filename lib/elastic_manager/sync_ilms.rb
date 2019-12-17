@@ -1,8 +1,55 @@
 # frozen_string_literal: true
 
 module Sync
+
+  def start_ilm
+    res = @elastic.request(:get, '/_ilm/status')
+
+    if res.code == 200
+      status = JSON.parse(res)['operation_mode']
+    else
+      log.error "can't start ILM: #{res}"
+      exit 1
+    end
+
+    if status != 'RUNNING'
+      res = @elastic.request(:post, '/_ilm/start')
+      if res.code == 200
+        log.info 'started ILM'
+      else
+        log.error "can't start ILM: #{res}"
+        exit 1
+      end
+    end
+  end
+
+  def check_and_retry_ilm_errors
+    res = @elastic.request(:get, '/_all/_ilm/explain')
+    if res.code == 200
+      res = JSON.parse(res)['indices']
+    else
+      log.error "can't get ILM explain"
+      exit 1
+    end
+
+    failed_indices = []
+    res.each do |k, v|
+      failed_indices << k if v['step'] == 'ERROR'
+    end
+
+    failed_indices.each do |index|
+      res = @elastic.request(:post, "/#{index}/_ilm/retry")
+      if res.code == 200
+        log.info "ILM for '#{index}' retry"
+      else
+        log.error "failed to retry ILM for '#{index}'"
+      end
+    end
+  end
+
   def sync_ilms
     log.info 'sync ilm'
+    start_ilm
     elastic_ilm = JSON.parse(@elastic.request(:get, '/_ilm/policy'))
     ilm_for_delete = []
     elastic_ilm.keys.each do |ilm|
@@ -42,5 +89,7 @@ module Sync
       res = @elastic.request(:put, "/_ilm/policy/#{ilm}", @config['ilms'][ilm]['config'])
       log.info "create #{ilm}: #{res}"
     end
+
+    check_and_retry_ilm_errors
   end
 end

@@ -4,7 +4,7 @@ require 'http'
 # Log to Slack
 module LogToSlack
 
-  def log_to_slack(text, icon_emoji=nil, username=nil, channel=nil)
+  def log_to_slack(text, icon_emoji=nil, username='elastic_manager', channel='#ops')
     if @config['slack'] &&
       @config['slack']['webhook_url'] &&
       @config['slack']['webhook_url'] != ''
@@ -15,9 +15,9 @@ module LogToSlack
     end
 
     body = { text: text }
+    body['username']   = username
+    body['channel']    = channel
     body['icon_emoji'] = icon_emoji if icon_emoji
-    body['username']   = username ? username : 'elastic_manager'
-    body['channel']    = channel ? channel : '#ops'
 
     begin
       r = HTTP.timeout(connect: 60, read: 60, write: 60)

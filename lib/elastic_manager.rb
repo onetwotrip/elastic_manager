@@ -4,18 +4,14 @@ require 'elastic_manager/config'
 require 'elastic_manager/logger'
 require 'elastic_manager/request'
 require 'elastic_manager/slack'
-# require 'elastic_manager/utils'
-# require 'elastic_manager/open'
-# require 'elastic_manager/close'
-# require 'elastic_manager/chill'
 require 'elastic_manager/snapshot'
 require 'elastic_manager/sync_roles'
 require 'elastic_manager/sync_users'
 require 'elastic_manager/sync_ilms'
 require 'elastic_manager/sync_templates'
 require 'elastic_manager/sync_spaces'
-# require 'elastic_manager/delete'
 require 'elastic_manager/snapdelete'
+require 'elastic_manager/open'
 
 # Main
 class ElasticManager
@@ -23,15 +19,10 @@ class ElasticManager
   include Logging
   include Request
   include LogToSlack
-  # include Utils
-  # include Open
-  # include Close
-  # include Chill
   include Snapshot
   include SnapDelete
   include Sync
-  # include Delete
-  # include SnapDelete
+  include Open
 
   def initialize
     @config  = prepare_config

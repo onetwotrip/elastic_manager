@@ -3,7 +3,6 @@
 module Request
   class Kibana
     include Logging
-    include Utils
 
     def initialize(elastic_pass)
       @client = HTTP.timeout(
@@ -28,7 +27,7 @@ module Request
       response = @client.request(method, uri, json: body)
 
       if response.code == 200 || response.code == 204
-        return response
+        response
       else
         raise "bad response: #{response.inspect}"
       end
