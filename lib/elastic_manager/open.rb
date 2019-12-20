@@ -80,14 +80,13 @@ module Open
         log.info "index '#{index}' open success"
         true
       else
-        log.error "index '#{index}' open error: #{res}"
+        log.error "index '#{index}' open fail: #{res}"
         false
       end
     else
       log.error "wrong response code for opening '#{index}': '#{res}'"
       false
     end
-
   end
 
   def unfreeze_index(index)
@@ -114,7 +113,12 @@ module Open
 
     indices.each do |index|
       state = index_state(index)
-      next if state == 'fail' || state == 'open'
+      log.info "#{index} state #{state}"
+      next if state == 'fail'
+      if state == 'open'
+        log.info "#{index} already open"
+        next
+      end
       results << open_index(index) if state == 'close'
       results << unfreeze_index(index) if state == 'frozen'
       snapshot_queue << index if state == 'notfound'
@@ -124,36 +128,47 @@ module Open
   end
 
   def stop_ilm
-    res = @elastic.request(:post, '/_ilm/stop')
+    res = @elastic.request(:get, '/_ilm/status')
+
     if res.code == 200
-      log.info 'ILM stopped'
+      status = JSON.parse(res)['operation_mode']
     else
-      log.error "can't stop ILM: #{res}"
-      exit 1
+      log.error "can't check ILM status: #{res}"
+      return false
     end
 
-    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = false
-
-    loop do
-      break if timeout_exceed(start)
-      sleep 30
-
-      res = @elastic.request(:get, "/_ilm/status")
-
+    if status == 'RUNNING'
+      res = @elastic.request(:post, '/_ilm/stop')
       if res.code == 200
-        if JSON.parse(res)['operation_mode'] == 'STOPPED'
-          result = true
-          break
-        end
+        log.info 'ILM stopped'
       else
-        log.error "can't check ILM status: #{res}"
+        log.error "can't stop ILM: #{res}"
+        exit 1
       end
-    end
 
-    unless result
-      log.error "can't stop ILM"
-      exit 1
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = false
+
+      loop do
+        break if timeout_exceed(start)
+        sleep 30
+
+        res = @elastic.request(:get, "/_ilm/status")
+
+        if res.code == 200
+          if JSON.parse(res)['operation_mode'] == 'STOPPED'
+            result = true
+            break
+          end
+        else
+          log.error "can't check ILM status: #{res}"
+        end
+      end
+
+      unless result
+        log.error "can't stop ILM"
+        exit 1
+      end
     end
   end
 
@@ -245,7 +260,7 @@ module Open
     return 'notfound' if res.code == 404
 
     if res.code == 200
-      JSON.parse(res).first['state']
+      JSON.parse(res).first['status']
     else
       log.error "can't get index status: '#{res}'"
       'fail'
@@ -261,7 +276,14 @@ module Open
       log.error "wrong response code for opening '#{index}': '#{res}'"
       return false
     end
-    res['acknowledged'].is_a?(TrueClass)
+
+    if res['acknowledged'].is_a?(TrueClass)
+      log.info "#{index} open success"
+      true
+    else
+      log.error "#{index} open fail: #{res}"
+      false
+    end
   end
 
   def restore_snapshot_old(index, oe)
@@ -313,6 +335,7 @@ module Open
   end
 
   def process_old(results, indices)
+    log.warn 'going to old cluster'
     # oe - old elatic
     oe = Request::Elastic.new(
       @config['custom']['old_cluster']['pass'],
@@ -321,7 +344,12 @@ module Open
 
     indices.each do |index|
       state = index_state_old(index, oe)
-      next if state == 'fail' || state == 'open'
+      log.info "#{index} state #{state}"
+      next if state == 'fail'
+      if state == 'open'
+        log.info "#{index} already open"
+        next
+      end
       results << open_index_old(index, oe) if state == 'close'
       results << restore_snapshot_old(index, oe) if state == 'notfound'
     end
@@ -339,7 +367,7 @@ module Open
     end
 
     unless snapshot_notfound.empty?
-      if @config['custom']['old_cluster'] == 'true'
+      if @config['custom']['old_cluster']['enabled'].to_s == 'true'
         results = process_old(results, snapshot_notfound)
       else
         snapshot_notfound.each do |index|
