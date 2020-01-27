@@ -29,7 +29,7 @@ module Request
       if response.code == 200 || response.code == 204
         response
       else
-        raise "bad response: #{response.inspect}"
+        raise "bad response: #{response} - #{response.inspect}"
       end
     end
   end
