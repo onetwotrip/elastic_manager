@@ -39,5 +39,5 @@ module Sync
       res = @elastic.request(:put, "/_xpack/security/role/#{role}", @config['roles'][role]['config'])
       log.info "create #{role}: #{res}"
     end
-    end
+  end
 end

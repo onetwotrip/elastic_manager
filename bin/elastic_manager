@@ -9,7 +9,7 @@ elastic_manager = ElasticManager.new
 
 cmd = ARGV[0]
 
-if %w[sync_roles sync_users sync_ilms sync_templates sync_spaces].include? cmd
+if %w[sync_roles sync_users sync_ilms sync_templates sync_spaces sync_privileges].include? cmd
   elastic_manager.send(cmd)
 elsif cmd == 'sync_full'
   elastic_manager.sync_roles

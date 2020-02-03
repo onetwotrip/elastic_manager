@@ -58,6 +58,10 @@ module Config
     raise 'no elastic custom config in vault' if vault_custom.nil?
     config['custom'] = JSON.parse(vault_custom.data.to_json)
 
+    vault_privileges = vault.logical.read("#{prefix}/privileges")
+    raise 'no elastic privileges config in vault' if vault_privileges.nil?
+    config['privileges'] = JSON.parse(vault_privileges.data.to_json)
+
     config
   end
 end

@@ -10,6 +10,7 @@ require 'elastic_manager/sync_users'
 require 'elastic_manager/sync_ilms'
 require 'elastic_manager/sync_templates'
 require 'elastic_manager/sync_spaces'
+require 'elastic_manager/sync_privileges'
 require 'elastic_manager/snapdelete'
 require 'elastic_manager/open'
 
