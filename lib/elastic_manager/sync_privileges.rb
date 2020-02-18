@@ -19,8 +19,8 @@ module Sync
         if privilege_body == elastic_privilege
           log.info "privilege '#{name}' for application '#{application}' is exist and already synced"
         else
-          privilege_body['kibana-.kibana']['feature_create_short_url.all'].delete('application')
-          privilege_body['kibana-.kibana']['feature_create_short_url.all'].delete('name')
+          privilege_body[application][name].delete('application')
+          privilege_body[application][name].delete('name')
 
           log.info "will update privilege '#{name}' for application '#{application}'"
           res = @elastic.request(:put, '/_security/privilege', privilege_body)

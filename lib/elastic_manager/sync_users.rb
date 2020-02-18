@@ -60,7 +60,8 @@ module Sync
     end
 
     users_for_create.each do |ufc|
-      roles = ['twiket_read_all']
+      roles = []
+      roles << 'twiket_read_all' if @config['env'] == 'development'
       # TODO: (anton.ryabov) rewrite this hardcoded cluster check
       # roles << 'twiket_read_all' # if @config['env'] == 'development'
       roles = roles + @config['users'][ufc]['roles'] if @config['users'][ufc].key?('roles')
