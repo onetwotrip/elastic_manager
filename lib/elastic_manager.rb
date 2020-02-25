@@ -1,52 +1,47 @@
 # frozen_string_literal: true
 
-require 'dotenv/load'
-require 'date'
 require 'elastic_manager/config'
 require 'elastic_manager/logger'
 require 'elastic_manager/request'
-require 'elastic_manager/utils'
-require 'elastic_manager/open'
-require 'elastic_manager/close'
-require 'elastic_manager/chill'
+require 'elastic_manager/slack'
 require 'elastic_manager/snapshot'
-require 'elastic_manager/delete'
+require 'elastic_manager/sync_roles'
+require 'elastic_manager/sync_users'
+require 'elastic_manager/sync_ilms'
+require 'elastic_manager/sync_templates'
+require 'elastic_manager/sync_spaces'
+require 'elastic_manager/sync_privileges'
 require 'elastic_manager/snapdelete'
+require 'elastic_manager/open'
 
 # Main
 class ElasticManager
   include Config
   include Logging
   include Request
-  include Utils
-  include Open
-  include Close
-  include Chill
+  include LogToSlack
   include Snapshot
-  include Delete
   include SnapDelete
+  include Sync
+  include Open
 
   def initialize
-    @config = load_from_env
-
-    @elastic = Request::Elastic.new(@config)
+    @config  = prepare_config
+    @elastic = Request::Elastic.new(@config['system_users']['elastic'])
+    @kibana  = Request::Kibana.new(@config['system_users']['elastic'])
   end
 
-  def run
-    if @config['task'].casecmp('open').zero?
-      open
-    elsif @config['task'].casecmp('close').zero?
-      close
-    elsif @config['task'].casecmp('chill').zero?
-      chill
-    elsif @config['task'].casecmp('snapshot').zero?
-      snapshot
-    elsif @config['task'].casecmp('delete').zero?
-      delete
-    elsif @config['task'].casecmp('snapdelete').zero?
-      snapdelete
+  def all_indices
+    url = '/_cluster/state/metadata/'
+    url = "#{url}?filter_path=metadata.indices.*.state,"
+    url = "#{url}metadata.indices.*.settings.index.routing.allocation.require.box_type"
+
+    res = @elastic.request(:get, url)
+    if res.code == 200
+      JSON.parse(res)['metadata']['indices']
     else
-      fail_and_exit('wrong task')
+      log.error "can't get all indices: #{res.code} - #{res.body}"
+      false
     end
   end
 end

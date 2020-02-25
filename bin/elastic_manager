@@ -5,6 +5,25 @@ require 'elastic_manager'
 
 STDOUT.sync = true
 
-elastic_manager = ElasticManager.new()
+elastic_manager = ElasticManager.new
 
-elastic_manager.run
+cmd = ARGV[0]
+
+if %w[sync_roles sync_users sync_ilms sync_templates sync_spaces sync_privileges].include? cmd
+  elastic_manager.send(cmd)
+elsif cmd == 'sync_full'
+  elastic_manager.sync_privileges
+  elastic_manager.sync_roles
+  elastic_manager.sync_users
+  elastic_manager.sync_ilms
+  elastic_manager.sync_templates
+  elastic_manager.sync_spaces
+elsif cmd == 'snapshot'
+  elastic_manager.snapshot
+  elastic_manager.snapdelete
+elsif cmd == 'open'
+  elastic_manager.open
+else
+  puts "wrong command '#{cmd}'"
+  exit 127
+end
