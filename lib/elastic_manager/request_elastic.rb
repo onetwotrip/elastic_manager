@@ -11,7 +11,9 @@ module Request
 
     RETRY_ERRORS = [StandardError, RuntimeError, Throttling].freeze
 
-    def initialize(elastic_pass, url='https://127.0.0.1:9200')
+    def initialize(elastic_pass)
+      url = ENV['ES_URL'] != '' ? ENV['ES_URL'] : 'https://127.0.0.1:9200'
+
       @client = HTTP.timeout(
         write:   2,
         connect: 3,
