@@ -1,22 +1,22 @@
 PATH
   remote: .
   specs:
-    elastic_manager (0.3.4)
+    elastic_manager (0.3.5)
       colorize (~> 0.8)
       dotenv (~> 2.4)
       http (~> 3.3)
-      rake (~> 12.3)
+      rake (>= 12.3, < 14.0)
       yajl-ruby (~> 1.4)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    addressable (2.5.2)
-      public_suffix (>= 2.0.2, < 4.0)
+    addressable (2.7.0)
+      public_suffix (>= 2.0.2, < 5.0)
     colorize (0.8.1)
-    domain_name (0.5.20180417)
+    domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
-    dotenv (2.5.0)
+    dotenv (2.7.6)
     http (3.3.0)
       addressable (~> 2.3)
       http-cookie (~> 1.0)
@@ -24,13 +24,13 @@ GEM
       http_parser.rb (~> 0.6.0)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
-    http-form_data (2.1.1)
+    http-form_data (2.3.0)
     http_parser.rb (0.6.0)
-    public_suffix (3.0.3)
-    rake (12.3.0)
+    public_suffix (4.0.6)
+    rake (13.0.1)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.7.5)
+    unf_ext (0.0.7.7)
     yajl-ruby (1.4.1)
 
 PLATFORMS
