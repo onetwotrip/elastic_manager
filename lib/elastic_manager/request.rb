@@ -133,7 +133,7 @@ module Request
       result = []
       indices.each do |index, _|
         begin
-          index_date = Date.parse(index.delete('-'))
+          index_date = Date.parse(index.split('-').last)
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
