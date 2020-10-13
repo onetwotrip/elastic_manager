@@ -90,7 +90,7 @@ module Request
       result = []
       all_snapshots.each do |snap|
         begin
-          snap_date = Date.parse(snap['id'].delete('-'))
+          snap_date = Date.parse(snap['id'].split('-').last)
         rescue ArgumentError => e
           log.error "#{e.message} for #{index}"
           next
