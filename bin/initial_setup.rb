@@ -46,11 +46,12 @@ vault = Vault::Client.new(address: vault_url)
 vault.auth.approle(vault_role, vault_secret)
 puts 'vault connected'
 
-bootstrap_config = vault.logical.read("secret/#{env}/elasticsearch/bootstrap")
+kv = vault.kv('secret')
+bootstrap_config = kv.read("#{env}/elasticsearch/bootstrap")
 raise "no bootstrap_config for #{env}" if bootstrap_config.nil?
 bootstrap_config = JSON.parse(bootstrap_config.data.to_json)
 
-system_users = vault.logical.read("secret/#{env}/elasticsearch/system_users")
+system_users = kv.read("#{env}/elasticsearch/system_users")
 raise "no system_users for #{env}" if system_users.nil?
 system_users = JSON.parse(system_users.data.to_json)
 
